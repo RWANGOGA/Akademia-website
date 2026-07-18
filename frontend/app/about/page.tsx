@@ -54,7 +54,14 @@ export default function AboutUsPage() {
 
       {/* HERO SECTION */}
       <section className="relative w-full min-h-[60vh] flex flex-col justify-end p-12 overflow-hidden pt-32">
-        <div className="absolute inset-0 z-0 opacity-40" style={{ backgroundImage: "url('/images/image copy 9.png')", backgroundSize: 'cover', backgroundPosition: 'center' }} />
+        <video
+          className="absolute inset-0 z-0 w-full h-full object-cover opacity-40"
+          src="https://www.thoughtworks.com/content/dam/thoughtworks/multimedia/video/what-we-do/play-on-loop-video/Whatwedo_Glowycompressed.mp4"
+          autoPlay
+          loop
+          muted
+          playsInline
+        />
         <div className="relative z-10 max-w-7xl mx-auto w-full mb-12">
           <motion.h1 initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} className="text-6xl md:text-8xl font-bold tracking-tight mb-8">
             Get to Know Your<br />Software Experts

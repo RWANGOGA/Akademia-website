@@ -57,6 +57,7 @@ export default function Header() {
             </div>
           ))}
           <Link href="/about" className="hover:text-yellow-400 transition-colors">About Us</Link>
+          <Link href="/contact" className="hover:text-yellow-400 transition-colors">Contact</Link>
         </div>
 
         {/* Mega Menu Dropdown */}
