@@ -4,6 +4,8 @@ import { useState } from "react";
 import Header from "@/components/Header";
 
 const DIRECTOR_EMAIL = "gen@akademia.co.jp";
+const SECOND_EMAIL = "heike@akademia.co.jp";
+const RECIPIENT_EMAILS = `${DIRECTOR_EMAIL},${SECOND_EMAIL}`;
 const DIRECTOR_WHATSAPP = "819057563969"; // international format, no symbols
 const DIRECTOR_PHONE_DISPLAY = "090-5756-3969";
 
@@ -88,7 +90,7 @@ export default function ContactPage() {
       `[Website Inquiry] ${form.inquiryType} — ${form.firstName} ${form.lastName}`
     );
     const body = encodeURIComponent(buildMessage());
-    window.location.href = `mailto:${DIRECTOR_EMAIL}?subject=${subject}&body=${body}`;
+    window.location.href = `mailto:${RECIPIENT_EMAILS}?subject=${subject}&body=${body}`;
   }
 
   function handleWhatsApp() {
@@ -261,9 +263,9 @@ export default function ContactPage() {
 
           <p className="text-xs text-slate-400 mt-6 leading-relaxed">
             Since we don&apos;t have an online submission system set up yet, Submit opens a
-            pre-filled email to our director at {DIRECTOR_EMAIL}, and WhatsApp opens a chat with
-            him directly at {DIRECTOR_PHONE_DISPLAY}. Either way, your inquiry reaches him
-            straight away.
+            pre-filled email addressed to {DIRECTOR_EMAIL} and {SECOND_EMAIL}, and WhatsApp
+            opens a chat directly at {DIRECTOR_PHONE_DISPLAY}. Either way, your inquiry reaches
+            our team straight away.
           </p>
         </form>
       </section>
