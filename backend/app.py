@@ -1,79 +1,129 @@
 import os
-from fastapi import FastAPI
+import sqlite3
+from fastapi import FastAPI, HTTPException
 from fastapi.middleware.cors import CORSMiddleware
+from fastapi.responses import Response
 from pydantic import BaseModel
 from groq import Groq
-from deepgram import DeepgramClient
 from dotenv import load_dotenv
 import requests
 from bs4 import BeautifulSoup
 
-# 1. Load environment variables
 load_dotenv()
 
-app = FastAPI()
+app = FastAPI(title="Akademia Local SQLite CMS & Neural Core", version="6.0")
 
-# 2. Add CORS Middleware to allow your Next.js app to talk to this API
 app.add_middleware(
     CORSMiddleware,
-    allow_origins=["http://localhost:3000"],  # Your Next.js URL
+    allow_origins=["http://localhost:3000"],
     allow_credentials=True,
     allow_methods=["*"],
     allow_headers=["*"],
 )
 
-# 3. Initialize clients
 groq_client = Groq(api_key=os.getenv("GROQ_API_KEY"))
-dg_client = DeepgramClient(api_key=os.getenv("DEEPGRAM_API_KEY"))
 
-# 4. Helper function to scrape project websites dynamically
-def scrape_website(url: str) -> str:
+def get_db_connection():
+    conn = sqlite3.connect("akademia_cms.db")
+    conn.row_factory = sqlite3.Row
+    return conn
+
+PROJECT_REGISTRY = {
+    "akademia": {
+        "name": "Akademia Mother Project",
+        "url": "https://www.akademia.co.jp/",
+        "description": "Our main company portal bridging Japan and Uganda."
+    }
+}
+
+def scrape_website_deep(url: str) -> str:
     try:
         headers = {'User-Agent': 'Mozilla/5.0'}
-        response = requests.get(url, headers=headers, timeout=5)
+        response = requests.get(url, headers=headers, timeout=3)
         if response.status_code == 200:
             soup = BeautifulSoup(response.text, 'html.parser')
-            # Strip out clutter elements like nav bars, scripts, and footers
-            for script in soup(["script", "style", "nav", "footer"]):
-                script.extract()
-            text = soup.get_text(separator=' ')
-            return " ".join(text.split())[:12000] # Cap text length to fit token limits
-    except Exception as e:
-        print(f"Scraping error: {e}")
-    return "Could not retrieve website content."
+            for element in soup(["script", "style", "nav", "footer", "noscript", "iframe"]):
+                element.extract()
+            text_blocks = [tag.get_text(strip=True) for tag in soup.find_all(['h1', 'h2', 'h3', 'p', 'li', 'article']) if tag.get_text(strip=True)]
+            return " ".join(" ".join(text_blocks).split())[:4000]
+    except Exception:
+        pass
+    return "Platform is live and operational."
 
 class ChatRequest(BaseModel):
     message: str
-    target_url: str = "https://www.akademia.co.jp/" # Default website context
+    project_key: str = "akademia"
+
+class TTSRequest(BaseModel):
+    text: str
+
+class ContentUpdate(BaseModel):
+    content_key: str
+    content_value: str
+    admin_secret: str
+
+@app.get("/content/{content_key:path}")
+async def get_universal_content(content_key: str):
+    try:
+        conn = get_db_connection()
+        cursor = conn.cursor()
+        cursor.execute("SELECT content_value FROM site_content WHERE content_key = ?", (content_key,))
+        result = cursor.fetchone()
+        cursor.close()
+        conn.close()
+        if result:
+            return {"content": result["content_value"]}
+        return {"content": None}
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=str(e))
+
+@app.post("/content/update")
+async def update_universal_content(req: ContentUpdate):
+    try:
+        conn = get_db_connection()
+        cursor = conn.cursor()
+        cursor.execute(
+            """
+            INSERT INTO site_content (content_key, content_value, updated_at)
+            VALUES (?, ?, CURRENT_TIMESTAMP)
+            ON CONFLICT(content_key) 
+            DO UPDATE SET content_value = excluded.content_value, updated_at = CURRENT_TIMESTAMP
+            """,
+            (req.content_key, req.content_value)
+        )
+        conn.commit()
+        cursor.close()
+        conn.close()
+        return {"status": "success", "message": "Content updated locally!"}
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=str(e))
 
 @app.post("/chat")
 async def chat(req: ChatRequest):
-    # Dynamically fetch live data from the website requested
-    website_content = scrape_website(req.target_url)
-
-    # Send user message and scraped context to Groq (Llama 3 model)
+    selected_project = PROJECT_REGISTRY.get(req.project_key.lower(), PROJECT_REGISTRY["akademia"])
+    live_page_content = scrape_website_deep(selected_project["url"])
     completion = groq_client.chat.completions.create(
         messages=[
-            {
-                "role": "system", 
-                "content": (
-                    f"You are Akademia's official front-desk receptionist and AI representative. "
-                    f"Always speak using first-person plural pronouns ('we', 'us', 'our') when talking about Akademia "
-                    f"as part of the company team, never talking about Akademia as 'they' or 'it'. "
-                    f"Answer user queries using the live scraped context from the website ({req.target_url}) "
-                    f"and our official service directory below:\n\n"
-                    f"--- OFFICIAL SERVICE DIRECTORY ---\n"
-                    f"- TransChecker: Our translation checking tool.\n"
-                    f"- MissionJapanese: Our Japanese language learning platform.\n"
-                    f"-----------------------------------\n\n"
-                    f"--- WEBSITE CONTENT START ---\n{website_content}\n--- WEBSITE CONTENT END ---\n\n"
-                    "Guidelines:\n"
-                    "- Maintain a warm, polite, welcoming, and professional receptionist tone using 'we/us'.\n"
-                    "- Do not attempt to redirect users to a dashboard page since it is currently disabled."
-                )
-            },
+            {"role": "system", "content": f"You are Akademia's official AI receptionist. Data: {live_page_content}"},
             {"role": "user", "content": req.message}
         ],
         model="llama-3.3-70b-versatile",
+        temperature=0.4,
+        max_tokens=800,
     )
     return {"response": completion.choices[0].message.content}
+
+@app.post("/tts")
+async def text_to_speech(req: TTSRequest):
+    try:
+        url = "https://api.deepgram.com/v1/speak?model=aura-asteria-en"
+        headers = {
+            "Authorization": f"Token {os.getenv('DEEPGRAM_API_KEY')}",
+            "Content-Type": "application/json"
+        }
+        response = requests.post(url, json={"text": req.text}, headers=headers, timeout=10)
+        if response.status_code == 200:
+            return Response(content=response.content, media_type="audio/mp3")
+        raise HTTPException(status_code=response.status_code, detail=response.text)
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=str(e))
