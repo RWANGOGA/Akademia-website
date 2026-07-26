@@ -1,5 +1,5 @@
-
 import os
+import re
 import sqlite3
 from fastapi import FastAPI, HTTPException
 from fastapi.middleware.cors import CORSMiddleware
@@ -87,7 +87,7 @@ def crawl_entire_website(base_url: str, max_pages: int = 5) -> str:
             response = requests.get(current_url, headers=headers, timeout=3)
             if response.status_code == 200:
                 soup = BeautifulSoup(response.text, 'html.parser')
-                
+
                 # Extract links to other sub-pages on the same domain
                 for link in soup.find_all('a', href=True):
                     abs_url = urljoin(current_url, link['href'])
@@ -110,6 +110,52 @@ def crawl_entire_website(base_url: str, max_pages: int = 5) -> str:
 
     full_corpus = "\n\n".join(collected_text)
     return full_corpus[:8000] if full_corpus else "Platform is live and operational."
+
+
+def clean_text_for_speech(text: str) -> str:
+    """
+    Strips markdown/formatting artifacts so TTS never reads out
+    literal symbols like ** or # or bullet dashes. Converts numbered/
+    bulleted lists into flowing spoken sentences.
+    """
+    if not text:
+        return ""
+
+    cleaned = text
+
+    # Remove bold/italic markers: **text**, __text__, *text*, _text_
+    cleaned = re.sub(r'\*\*(.*?)\*\*', r'\1', cleaned)
+    cleaned = re.sub(r'__(.*?)__', r'\1', cleaned)
+    cleaned = re.sub(r'\*(.*?)\*', r'\1', cleaned)
+    cleaned = re.sub(r'(?<!\w)_(.*?)_(?!\w)', r'\1', cleaned)
+
+    # Remove markdown headers (#, ##, ### ...)
+    cleaned = re.sub(r'^\s{0,3}#{1,6}\s*', '', cleaned, flags=re.MULTILINE)
+
+    # Remove inline code / code fences
+    cleaned = re.sub(r'```.*?```', '', cleaned, flags=re.DOTALL)
+    cleaned = re.sub(r'`([^`]*)`', r'\1', cleaned)
+
+    # Remove markdown links but keep the visible text: [label](url) -> label
+    cleaned = re.sub(r'\[([^\]]+)\]\([^)]+\)', r'\1', cleaned)
+
+    # Convert numbered list markers ("1. ", "2) ") into pauses, not spoken digits+symbols
+    cleaned = re.sub(r'^\s*\d+[\.\)]\s*', '', cleaned, flags=re.MULTILINE)
+
+    # Convert bullet markers (-, *, •) at line start into pauses
+    cleaned = re.sub(r'^\s*[-\*•]\s*', '', cleaned, flags=re.MULTILINE)
+
+    # Collapse remaining stray markdown symbols
+    cleaned = cleaned.replace('#', '').replace('*', '').replace('_', '')
+
+    # Normalize line breaks into natural pauses (periods) and collapse whitespace
+    cleaned = re.sub(r'\n+', '. ', cleaned)
+    cleaned = re.sub(r'\s{2,}', ' ', cleaned)
+    cleaned = re.sub(r'\.{2,}', '.', cleaned)
+    cleaned = re.sub(r'\s+([.,!?])', r'\1', cleaned)
+
+    return cleaned.strip()
+
 
 class ChatRequest(BaseModel):
     message: str
@@ -162,7 +208,7 @@ async def update_universal_content(req: ContentUpdate):
 @app.post("/chat")
 async def chat(req: ChatRequest):
     selected_project = PROJECT_REGISTRY.get(req.project_key.lower(), PROJECT_REGISTRY["akademia"])
-    
+
     # Deep multi-page crawl across sub-links of the target portal
     live_multi_page_content = crawl_entire_website(selected_project["url"], max_pages=6)
     directory_summary = "\n".join([f"- {p['name']} ({p['url']}): {p['description']}" for p in PROJECT_REGISTRY.values()])
@@ -170,11 +216,18 @@ async def chat(req: ChatRequest):
     completion = groq_client.chat.completions.create(
         messages=[
             {
-                "role": "system", 
+                "role": "system",
                 "content": (
                     f"You are Akademia's official front-desk receptionist and AI representative. "
                     f"Always speak using first-person plural pronouns ('we', 'us', 'our') when talking about Akademia "
-                    f"and our sub-teams. Keep answers concise, accurate, and informative.\n\n"
+                    f"and our sub-teams.\n\n"
+                    f"FORMATTING RULES (very important): This response may be read aloud by a "
+                    f"text-to-speech engine, so write in natural, flowing spoken sentences and short "
+                    f"paragraphs only. Do NOT use markdown formatting of any kind — no asterisks, "
+                    f"no bold, no headers, no numbered lists, no bullet points, no hyphen-dashes as "
+                    f"list markers. If you need to present multiple points, weave them into a single "
+                    f"conversational paragraph using connecting words like 'first', 'also', 'in addition', "
+                    f"and 'finally' instead of list formatting. Keep answers concise, warm, and informative.\n\n"
                     f"ECOSYSTEM DIRECTORY:\n{directory_summary}\n\n"
                     f"COMPREHENSIVE MULTI-PAGE CRAWLED DATA FOR {selected_project['name']}:\n{live_multi_page_content}"
                 )
@@ -190,12 +243,14 @@ async def chat(req: ChatRequest):
 @app.post("/tts")
 async def text_to_speech(req: TTSRequest):
     try:
+        speakable_text = clean_text_for_speech(req.text)
+
         url = "https://api.deepgram.com/v1/speak?model=aura-asteria-en"
         headers = {
             "Authorization": f"Token {os.getenv('DEEPGRAM_API_KEY')}",
             "Content-Type": "application/json"
         }
-        response = requests.post(url, json={"text": req.text}, headers=headers, timeout=10)
+        response = requests.post(url, json={"text": speakable_text}, headers=headers, timeout=10)
         if response.status_code == 200:
             return Response(content=response.content, media_type="audio/mp3")
         raise HTTPException(status_code=response.status_code, detail=response.text)

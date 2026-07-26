@@ -15,14 +15,14 @@ interface Capability {
 
 export default function HomePage() {
   const companies = [
-    "Akademia Company LTD",
-    "Akademia JAPAN",
-    "Akademia Uganda",
-    "Akademia Company LTD",
-    "Akademia Company LTD",
-    "Akademia Company LTD", 
-    "Akademia Company LTD",
-    "Akademia Company LTD",
+    "Dyna Wisdom Uganda",
+    "Akademia Company LTD (Japan)",
+    "Dyna Wisdom Uganda",
+    "Akademia Company LTD (Japan)",
+    "Dyna Wisdom Uganda",
+    "Akademia Company LTD (Japan)",
+    "Dyna Wisdom Uganda",
+    "Akademia Company LTD (Japan)",
   ];
 
   // Core Capabilities dataset
@@ -58,7 +58,7 @@ export default function HomePage() {
     {
       id: "cloud",
       title: "Cloud Computing",
-      description: "To guarantee unbeatable uptime and ironclad performance metrics, Akademia hosts and manages its own custom cluster of private dedicated bare-metal cloud servers directly inside Tokyo, Japan.",
+      description: "To guarantee unbeatable uptime and ironclad performance metrics, Dyna Wisdom leverages our parent company Akademia's own custom cluster of private dedicated bare-metal cloud servers, hosted directly in Tokyo, Japan.",
       imagePath: "/images/image copy 7.png", 
     },
   ];
@@ -89,7 +89,7 @@ export default function HomePage() {
         <div className="absolute inset-0 opacity-5 text-xs text-white font-mono overflow-hidden pointer-events-none">
           {Array.from({ length: 50 }).map((_, i) => (
             <div key={i} className="whitespace-nowrap">
-              const Akademia = {`{`} bridging: "Japan-Uganda", excellence: true {`}`}
+              const DynaWisdom = {`{`} parentCompany: "Akademia Japan", bridging: "Japan-Uganda", excellence: true {`}`}
             </div>
           ))}
         </div>
@@ -99,9 +99,13 @@ export default function HomePage() {
         <div className="relative z-10 max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-20">
           <div className="max-w-3xl">
             <h1 className="text-5xl md:text-6xl lg:text-7xl font-bold text-white leading-tight mb-6 drop-shadow-md">
-              Akademia<br />
-              Company LTD
+              Dyna Wisdom<br />
+              Uganda
             </h1>
+
+            <p className="text-lg md:text-xl text-yellow-400 font-medium mb-4 max-w-2xl drop-shadow-sm">
+              A Ugandan technology company, proudly backed by Akademia Company Ltd, Japan
+            </p>
 
             <p className="text-xl md:text-2xl text-gray-200 mb-10 max-w-2xl drop-shadow-sm">
               Fostering Innovation and Creativity
@@ -169,13 +173,13 @@ export default function HomePage() {
           <div className="grid grid-cols-1 lg:grid-cols-2 gap-12 items-center">
             <div className="space-y-6">
               <h2 className="text-4xl md:text-5xl font-bold tracking-tight text-white">
-                Akademia in Japan & Uganda
+                Dyna Wisdom, powered by Akademia Japan
               </h2>
               <p className="text-gray-400 text-lg leading-relaxed">
-                As a well-established Japanese software development company, Akademia Company Ltd has extended its elite technical standards to build robust operational roots in Uganda. 
+                Dyna Wisdom is a Ugandan technology company built in close partnership with Akademia Company Ltd, a well-established Japanese software development firm. Together, we extend elite Japanese technical standards into robust, locally-rooted operations in Uganda.
               </p>
               <p className="text-gray-400 text-lg leading-relaxed">
-                Our global teams seamlessly analyze your objectives to architect enterprise-grade IT solutions. Combining strict Japanese engineering principles with energetic East African tech talent, our shared history and execution are your guarantee of success.
+                Our combined teams seamlessly analyze your objectives to architect enterprise-grade IT solutions. By merging strict Japanese engineering principles with energetic East African tech talent, this shared partnership and track record are your guarantee of success.
               </p>
               <div className="pt-4">
                 <Link 
@@ -196,6 +200,7 @@ export default function HomePage() {
         </div>
       </section>
 
+      {/* ================= CORE CAPABILITIES (UPDATED FOR MOBILE IMAGE PLACEMENT) ================= */}
       <section className="bg-white text-slate-900 py-24 border-t border-slate-200">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
           <h2 className="text-4xl md:text-5xl font-bold text-slate-900 mb-16 tracking-tight">
@@ -215,14 +220,33 @@ export default function HomePage() {
                     >
                       {capability.title}
                     </button>
+
                     {isSelected && (
                       <motion.div 
                         initial={{ opacity: 0, height: 0 }}
                         animate={{ opacity: 1, height: "auto" }}
                         exit={{ opacity: 0, height: 0 }}
-                        className="text-gray-600 text-base md:text-lg pt-2 pb-4 pr-4 max-w-xl leading-relaxed"
+                        className="pt-2 pb-4 pr-4 max-w-xl"
                       >
-                        {capability.description}
+                        {/* Mobile-only image: appears immediately under the clicked capability, before the text */}
+                        <div className="lg:hidden w-full aspect-video max-w-sm bg-slate-50 border border-slate-100 rounded-lg flex items-center justify-center p-4 overflow-hidden shadow-sm mb-4">
+                          {capability.imagePath ? (
+                            <div
+                              className="w-full h-full bg-contain bg-center bg-no-repeat"
+                              style={{ backgroundImage: `url('${capability.imagePath}')` }}
+                            />
+                          ) : (
+                            <div className="text-center p-4 border border-dashed border-slate-200 rounded-md">
+                              <div className="text-yellow-500 text-2xl mb-1">✦</div>
+                              <p className="text-xs font-semibold text-slate-800">{capability.title}</p>
+                              <p className="text-[10px] text-slate-400 mt-1 font-mono">Architecture Node Ready</p>
+                            </div>
+                          )}
+                        </div>
+
+                        <div className="text-gray-600 text-base md:text-lg leading-relaxed">
+                          {capability.description}
+                        </div>
                       </motion.div>
                     )}
                   </div>
@@ -237,7 +261,9 @@ export default function HomePage() {
                 </Link>
               </div>
             </div>
-            <div className="relative w-full aspect-square max-w-[500px] mx-auto lg:ml-auto bg-slate-50 border border-slate-100 rounded-lg flex items-center justify-center p-6 overflow-hidden shadow-sm">
+
+            {/* Desktop-only side panel image (hidden on mobile, where inline image above is used instead) */}
+            <div className="hidden lg:flex relative w-full aspect-square max-w-[500px] mx-auto lg:ml-auto bg-slate-50 border border-slate-100 rounded-lg items-center justify-center p-6 overflow-hidden shadow-sm">
               <AnimatePresence mode="wait">
                 <motion.div
                   key={currentCapability.id}

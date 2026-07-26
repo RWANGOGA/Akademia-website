@@ -2,6 +2,7 @@
 
 import { useState } from "react";
 import Header from "@/components/Header";
+import { Phone, Mail, MapPin } from "lucide-react";
 
 const DIRECTOR_EMAIL = "gen@akademia.co.jp";
 const SECOND_EMAIL = "heike@akademia.co.jp";
@@ -17,6 +18,17 @@ const INQUIRY_TYPES = [
   "Account Help",
   "Other",
 ];
+
+// Office location used in the map + contact details section below
+const OFFICE_ADDRESS_LINES = [
+  "Plot 2133, Tank Hill Road,",
+  "Muyenga, Kampala, Uganda",
+];
+const OFFICE_LAT = 0.2990038;
+const OFFICE_LNG = 32.6087117;
+const OFFICE_MAPS_LINK = "https://maps.google.com/?cid=320021674925450370";
+const OFFICE_PHONE_DISPLAY = "090-5756-3969";
+const OFFICE_EMAIL_DISPLAY = "gen@akademia.co.jp";
 
 type FormState = {
   inquiryType: string;
@@ -75,8 +87,7 @@ export default function ContactPage() {
       .join("\n");
   }
 
-  // No backend/database yet — route every inquiry straight to the director
-  // via a pre-filled email draft (mailto:) so nothing gets lost.
+  // Route inquiry via pre-filled email draft (mailto:)
   function handleSubmit(e: React.FormEvent) {
     e.preventDefault();
     const validationError = validate();
@@ -93,6 +104,7 @@ export default function ContactPage() {
     window.location.href = `mailto:${RECIPIENT_EMAILS}?subject=${subject}&body=${body}`;
   }
 
+  // Route inquiry via WhatsApp
   function handleWhatsApp() {
     const validationError = validate();
     if (validationError) {
@@ -109,17 +121,18 @@ export default function ContactPage() {
       <Header />
 
       {/* HERO */}
-      <section className="relative w-full overflow-hidden bg-gradient-to-br from-[#5B3FE0] via-[#4433E8] to-[#2F6BF0] pt-40 pb-24 px-6">
+      <section className="relative w-full overflow-hidden bg-gradient-to-br from-[#5B3FE0] via-[#4433E8] to-[#2F6BF0] pt-28 sm:pt-32 md:pt-40 pb-16 md:pb-24 px-4 sm:px-6">
         <div className="absolute inset-0 opacity-25 pointer-events-none">
-          <div className="absolute -top-32 -left-32 w-[36rem] h-[36rem] rounded-full bg-white/10 blur-[80px]" />
-          <div className="absolute top-0 left-1/3 w-[28rem] h-[28rem] rounded-full bg-white/10 blur-[100px]" />
-          <div className="absolute -bottom-24 right-1/4 w-[32rem] h-[32rem] rounded-full bg-white/10 blur-[90px]" />
+          <div className="absolute -top-32 -left-32 w-72 h-72 md:w-[36rem] md:h-[36rem] rounded-full bg-white/10 blur-[60px] md:blur-[80px]" />
+          <div className="absolute top-0 left-1/3 w-56 h-56 md:w-[28rem] md:h-[28rem] rounded-full bg-white/10 blur-[70px] md:blur-[100px]" />
+          <div className="absolute -bottom-24 right-1/4 w-64 h-64 md:w-[32rem] md:h-[32rem] rounded-full bg-white/10 blur-[65px] md:blur-[90px]" />
         </div>
         <div className="relative max-w-5xl mx-auto text-center">
-          <h1 className="text-4xl md:text-6xl font-extrabold text-white tracking-tight mb-6">
+          <h1 className="text-3xl sm:text-4xl md:text-6xl font-extrabold text-white tracking-tight mb-4 md:mb-6">
             What Can We Help You With?
           </h1>
-          <p className="text-white/90 font-semibold uppercase tracking-wide text-sm md:text-base leading-relaxed max-w-3xl mx-auto">
+          <div className="w-16 h-1 bg-yellow-400 mx-auto mb-6 rounded-full" />
+          <p className="text-white/90 font-semibold uppercase tracking-wide text-xs sm:text-sm md:text-base leading-relaxed max-w-3xl mx-auto">
             Whatever you need — a project inquiry, a partnership, a career question, or
             account help — tell us below and we&apos;ll get back to you within 1 business day.
           </p>
@@ -127,10 +140,10 @@ export default function ContactPage() {
       </section>
 
       {/* FORM CARD */}
-      <section className="relative px-6 -mt-16 pb-24">
+      <section className="relative px-4 sm:px-6 -mt-10 md:-mt-16 pb-16 md:pb-24">
         <form
           onSubmit={handleSubmit}
-          className="max-w-3xl mx-auto bg-white rounded-xl shadow-xl border border-slate-100 p-8 md:p-12"
+          className="max-w-3xl mx-auto bg-white rounded-xl shadow-xl border border-slate-100 p-6 sm:p-8 md:p-12"
         >
           <div className="mb-6">
             <label className="block text-sm font-semibold text-slate-500 mb-2">
@@ -139,7 +152,7 @@ export default function ContactPage() {
             <select
               value={form.inquiryType}
               onChange={(e) => update("inquiryType", e.target.value)}
-              className="w-full border border-slate-300 rounded-md px-4 py-3 text-slate-700 focus:outline-none focus:ring-2 focus:ring-blue-500"
+              className="w-full border border-slate-300 rounded-md px-4 py-3 text-slate-700 focus:outline-none focus:ring-2 focus:ring-yellow-500"
             >
               <option value="">Select</option>
               {INQUIRY_TYPES.map((type) => (
@@ -150,7 +163,7 @@ export default function ContactPage() {
             </select>
           </div>
 
-          <div className="grid md:grid-cols-2 gap-6 mb-6">
+          <div className="grid sm:grid-cols-2 gap-6 mb-6">
             <div>
               <label className="block text-sm font-semibold text-slate-500 mb-2">
                 First Name<span className="text-red-500">*</span>
@@ -159,7 +172,7 @@ export default function ContactPage() {
                 type="text"
                 value={form.firstName}
                 onChange={(e) => update("firstName", e.target.value)}
-                className="w-full border border-slate-300 rounded-md px-4 py-3 focus:outline-none focus:ring-2 focus:ring-blue-500"
+                className="w-full border border-slate-300 rounded-md px-4 py-3 focus:outline-none focus:ring-2 focus:ring-yellow-500"
               />
             </div>
             <div>
@@ -168,12 +181,12 @@ export default function ContactPage() {
                 type="tel"
                 value={form.phone}
                 onChange={(e) => update("phone", e.target.value)}
-                className="w-full border border-slate-300 rounded-md px-4 py-3 focus:outline-none focus:ring-2 focus:ring-blue-500"
+                className="w-full border border-slate-300 rounded-md px-4 py-3 focus:outline-none focus:ring-2 focus:ring-yellow-500"
               />
             </div>
           </div>
 
-          <div className="grid md:grid-cols-2 gap-6 mb-6">
+          <div className="grid sm:grid-cols-2 gap-6 mb-6">
             <div>
               <label className="block text-sm font-semibold text-slate-500 mb-2">
                 Last Name<span className="text-red-500">*</span>
@@ -182,7 +195,7 @@ export default function ContactPage() {
                 type="text"
                 value={form.lastName}
                 onChange={(e) => update("lastName", e.target.value)}
-                className="w-full border border-slate-300 rounded-md px-4 py-3 focus:outline-none focus:ring-2 focus:ring-blue-500"
+                className="w-full border border-slate-300 rounded-md px-4 py-3 focus:outline-none focus:ring-2 focus:ring-yellow-500"
               />
             </div>
             <div>
@@ -191,12 +204,12 @@ export default function ContactPage() {
                 type="text"
                 value={form.companyName}
                 onChange={(e) => update("companyName", e.target.value)}
-                className="w-full border border-slate-300 rounded-md px-4 py-3 focus:outline-none focus:ring-2 focus:ring-blue-500"
+                className="w-full border border-slate-300 rounded-md px-4 py-3 focus:outline-none focus:ring-2 focus:ring-yellow-500"
               />
             </div>
           </div>
 
-          <div className="grid md:grid-cols-2 gap-6 mb-6">
+          <div className="grid sm:grid-cols-2 gap-6 mb-6">
             <div>
               <label className="block text-sm font-semibold text-slate-500 mb-2">
                 Email<span className="text-red-500">*</span>
@@ -205,7 +218,7 @@ export default function ContactPage() {
                 type="email"
                 value={form.email}
                 onChange={(e) => update("email", e.target.value)}
-                className="w-full border border-slate-300 rounded-md px-4 py-3 focus:outline-none focus:ring-2 focus:ring-blue-500"
+                className="w-full border border-slate-300 rounded-md px-4 py-3 focus:outline-none focus:ring-2 focus:ring-yellow-500"
               />
             </div>
             <div>
@@ -214,7 +227,7 @@ export default function ContactPage() {
                 type="text"
                 value={form.website}
                 onChange={(e) => update("website", e.target.value)}
-                className="w-full border border-slate-300 rounded-md px-4 py-3 focus:outline-none focus:ring-2 focus:ring-blue-500"
+                className="w-full border border-slate-300 rounded-md px-4 py-3 focus:outline-none focus:ring-2 focus:ring-yellow-500"
               />
             </div>
           </div>
@@ -227,7 +240,7 @@ export default function ContactPage() {
               value={form.message}
               onChange={(e) => update("message", e.target.value)}
               rows={7}
-              className="w-full border border-slate-300 rounded-md px-4 py-3 focus:outline-none focus:ring-2 focus:ring-blue-500 resize-none"
+              className="w-full border border-slate-300 rounded-md px-4 py-3 focus:outline-none focus:ring-2 focus:ring-yellow-500 resize-none"
             />
           </div>
 
@@ -236,38 +249,127 @@ export default function ContactPage() {
               type="checkbox"
               checked={form.optIn}
               onChange={(e) => update("optIn", e.target.checked)}
-              className="mt-1 w-4 h-4"
+              className="mt-1 w-4 h-4 accent-yellow-500"
             />
             I&apos;d like to receive occasional insights from Akademia.
           </label>
 
           {error && <p className="text-red-500 text-sm mb-4">{error}</p>}
 
-          <div className="flex flex-col sm:flex-row items-stretch sm:items-center gap-4">
+          <div className="flex flex-col sm:flex-row items-stretch sm:items-center gap-3 sm:gap-4">
             <button
               type="submit"
-              className="inline-flex items-center justify-center gap-2 bg-emerald-500 hover:bg-emerald-600 transition-colors text-white font-bold px-8 py-3 rounded-md"
+              className="inline-flex items-center justify-center gap-2 bg-yellow-500 hover:bg-yellow-600 transition-colors text-slate-900 font-bold px-6 sm:px-8 py-3 rounded-md text-sm sm:text-base"
             >
               Submit
-              <span aria-hidden>→</span>
+              <span aria-hidden>{"\u2192"}</span>
             </button>
             <button
               type="button"
               onClick={handleWhatsApp}
-              className="inline-flex items-center justify-center gap-2 bg-[#25D366] hover:bg-[#1ebe5b] transition-colors text-white font-bold px-8 py-3 rounded-md"
+              className="inline-flex items-center justify-center gap-2 bg-[#25D366] hover:bg-[#1ebe5b] transition-colors text-white font-bold px-6 sm:px-8 py-3 rounded-md text-sm sm:text-base"
             >
               Chat on WhatsApp
-              <span aria-hidden>↗</span>
+              <span aria-hidden>{"\u2197"}</span>
             </button>
           </div>
-
-          <p className="text-xs text-slate-400 mt-6 leading-relaxed">
-            Since we don&apos;t have an online submission system set up yet, Submit opens a
-            pre-filled email addressed to {DIRECTOR_EMAIL} and {SECOND_EMAIL}, and WhatsApp
-            opens a chat directly at {DIRECTOR_PHONE_DISPLAY}. Either way, your inquiry reaches
-            our team straight away.
-          </p>
         </form>
+      </section>
+
+      {/* ================= MAP + CONTACT DETAILS SECTION ================= */}
+      <section className="w-full">
+        <div className="flex flex-col md:flex-row w-full min-h-[520px]">
+          {/* Map (left / main area) */}
+          <div className="w-full md:w-2/3 min-h-[360px] md:min-h-[520px]">
+            <iframe
+              src={`https://maps.google.com/maps?q=${OFFICE_LAT},${OFFICE_LNG}&z=16&output=embed`}
+              width="100%"
+              height="100%"
+              style={{ border: 0, minHeight: "360px", display: "block" }}
+              allowFullScreen
+              loading="lazy"
+              referrerPolicy="no-referrer-when-downgrade"
+              title="Akademia Uganda Office Location"
+            />
+          </div>
+
+          {/* Dark navy contact details sidebar (right) */}
+          <div className="w-full md:w-1/3 bg-[#0B1E3D] text-white px-8 sm:px-10 py-12 sm:py-14 flex flex-col justify-center">
+            <h3 className="text-2xl sm:text-3xl font-bold leading-snug mb-3">
+              Reach us through our contact details.
+            </h3>
+            <div className="w-14 h-1 bg-yellow-400 rounded-full mb-8" />
+
+            <div className="space-y-7">
+              <div className="flex items-start gap-4">
+                <div className="flex-shrink-0 w-10 h-10 rounded-full bg-yellow-500 flex items-center justify-center">
+                  <Phone size={18} className="text-slate-900" />
+                </div>
+                <p className="font-bold text-base sm:text-lg pt-2">
+                  {OFFICE_PHONE_DISPLAY}
+                </p>
+              </div>
+
+              <div className="flex items-start gap-4">
+                <div className="flex-shrink-0 w-10 h-10 rounded-full bg-yellow-500 flex items-center justify-center">
+                  <Mail size={18} className="text-slate-900" />
+                </div>
+                <p className="font-bold text-base sm:text-lg pt-2">
+                  {OFFICE_EMAIL_DISPLAY}
+                </p>
+              </div>
+
+              <div className="flex items-start gap-4">
+                <div className="flex-shrink-0 w-10 h-10 rounded-full bg-yellow-500 flex items-center justify-center">
+                  <MapPin size={18} className="text-slate-900" />
+                </div>
+                <div className="font-bold text-base sm:text-lg leading-relaxed pt-2">
+                  {OFFICE_ADDRESS_LINES.map((line) => (
+                    <p key={line}>{line}</p>
+                  ))}
+                  
+                  {/* FIXED: Added the missing <a tag here */}
+                  <a
+                    href={OFFICE_MAPS_LINK}
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    className="inline-block mt-2 text-yellow-400 font-semibold text-sm hover:text-yellow-300 transition-colors"
+                  >
+                    Get Directions {"\u2192"}
+                  </a>
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+      </section>
+
+      {/* ================= WHAT HAPPENS NEXT ================= */}
+      <section className="bg-slate-100 py-16 sm:py-20 md:py-24 px-4 sm:px-6">
+        <div className="max-w-4xl mx-auto">
+          <h2 className="text-4xl sm:text-5xl md:text-6xl font-extrabold text-[#0B1E3D] mb-10 md:mb-14 tracking-tight">
+            What happens next?
+          </h2>
+
+          <div className="space-y-6 sm:space-y-8">
+            <p className="text-slate-700 text-base sm:text-lg leading-relaxed">
+              Having received and processed your request, we will reach you shortly to
+              detail your project needs and sign an NDA to ensure the confidentiality of
+              information.
+            </p>
+            <p className="text-slate-700 text-base sm:text-lg leading-relaxed">
+              After examining requirements, our analysts and developers devise a project
+              proposal with the scope of works, team size, time and cost estimates.
+            </p>
+            <p className="text-slate-700 text-base sm:text-lg leading-relaxed">
+              We arrange a meeting with you to discuss the offer and come to an agreement.
+            </p>
+            <p className="text-slate-700 text-base sm:text-lg leading-relaxed">
+              Once terms are settled, we kick off the engagement with a clear timeline, so
+              you always know what to expect and when.
+            </p>
+          </div>
+        </div>
       </section>
     </div>
   );
