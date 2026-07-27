@@ -251,7 +251,7 @@ export default function ContactPage() {
               onChange={(e) => update("optIn", e.target.checked)}
               className="mt-1 w-4 h-4 accent-yellow-500"
             />
-            I&apos;d like to receive occasional insights from Akademia.
+            I&apos;d like to receive occasional insights from DYNA WISDOM.
           </label>
 
           {error && <p className="text-red-500 text-sm mb-4">{error}</p>}
@@ -354,7 +354,7 @@ export default function ContactPage() {
           <div className="space-y-6 sm:space-y-8">
             <p className="text-slate-700 text-base sm:text-lg leading-relaxed">
               Having received and processed your request, we will reach you shortly to
-              detail your project needs and sign an NDA to ensure the confidentiality of
+              detail your project needs and sign an NDA (Non Disclosure Agreement ) to ensure the confidentiality of
               information.
             </p>
             <p className="text-slate-700 text-base sm:text-lg leading-relaxed">

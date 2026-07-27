@@ -1,15 +1,47 @@
 "use client";
 
 import React, { useState, useEffect, useRef } from "react";
-import { Mic, MicOff, Send, Sparkles, Bot, User, MessageSquare, X, Minimize2 } from "lucide-react";
+import {
+  Mic,
+  MicOff,
+  Send,
+  Sparkles,
+  Bot,
+  User,
+  MessageSquare,
+  X,
+  Minimize2,
+  Phone,
+  Mail,
+  MessageCircle,
+} from "lucide-react";
+
+type ChatAction = {
+  type: "whatsapp" | "call" | "email" | string;
+  label: string;
+  url: string;
+};
+
+type ChatMessage = {
+  role: "user" | "assistant";
+  content: string;
+  actions?: ChatAction[];
+};
+
+function ActionIcon({ type }: { type: string }) {
+  if (type === "whatsapp") return <MessageCircle className="w-3.5 h-3.5" />;
+  if (type === "call") return <Phone className="w-3.5 h-3.5" />;
+  if (type === "email") return <Mail className="w-3.5 h-3.5" />;
+  return null;
+}
 
 export default function ChatWidget() {
   const [isOpen, setIsOpen] = useState(false);
-  const [messages, setMessages] = useState([
-    { role: "assistant", content: "Hello! Welcome to DYNA WISDOM . How can our team help you today?" }
+  const [messages, setMessages] = useState<ChatMessage[]>([
+    { role: "assistant", content: "Hello! Welcome to DYNA WISDOM. How can our team help you today?" }
   ]);
   const [input, setInput] = useState("");
-  const [projectKey, setProjectKey] = useState("DYNA WISDOM");
+  const [projectKey, setProjectKey] = useState("akademia");
   const [isThinking, setIsThinking] = useState(false);
   const [isListening, setIsListening] = useState(false);
   const messagesEndRef = useRef<HTMLDivElement>(null);
@@ -63,6 +95,7 @@ export default function ChatWidget() {
     recognition.start();
   };
 
+  // Play audio response via TTS backend endpoint.
   const playAudio = async (text: string) => {
     try {
       const res = await fetch("http://127.0.0.1:8000/tts", {
@@ -96,12 +129,19 @@ export default function ChatWidget() {
         body: JSON.stringify({ message: userMessage, project_key: projectKey })
       });
       const data = await res.json();
-      const botResponse = data.response || "I'm sorry, I couldn't process that.";
+      const botResponse: string = data.response || "I'm sorry, I couldn't process that.";
+      const botActions: ChatAction[] = Array.isArray(data.actions) ? data.actions : [];
 
-      setMessages((prev) => [...prev, { role: "assistant", content: botResponse }]);
+      setMessages((prev) => [
+        ...prev,
+        { role: "assistant", content: botResponse, actions: botActions }
+      ]);
       playAudio(botResponse);
     } catch (err) {
-      setMessages((prev) => [...prev, { role: "assistant", content: "Connection error with DYNA WISDOM core server." }]);
+      setMessages((prev) => [
+        ...prev,
+        { role: "assistant", content: "Connection error with DYNA WISDOM core server." }
+      ]);
     } finally {
       setIsThinking(false);
     }
@@ -183,19 +223,51 @@ export default function ChatWidget() {
             {/* Scrollable Chat Area */}
             <div className="flex-1 overflow-y-auto p-3 sm:p-4 space-y-3 sm:space-y-4 bg-white">
               {messages.map((msg, index) => (
-                <div key={index} className={`flex items-start gap-2 sm:gap-2.5 ${msg.role === "user" ? "justify-end" : "justify-start"}`}>
+                <div
+                  key={index}
+                  className={`flex items-start gap-2 sm:gap-2.5 ${msg.role === "user" ? "justify-end" : "justify-start"}`}
+                >
                   {msg.role === "assistant" && (
                     <div className="w-6 h-6 sm:w-7 sm:h-7 rounded-full bg-indigo-50 border border-indigo-200 flex items-center justify-center shrink-0">
                       <Bot className="w-3 h-3 sm:w-3.5 sm:h-3.5 text-indigo-500" />
                     </div>
                   )}
 
-                  <div className={`max-w-[85%] sm:max-w-[80%] rounded-2xl px-3 py-2 sm:px-3.5 sm:py-2.5 text-xs sm:text-sm leading-relaxed ${
-                    msg.role === "user"
-                      ? "bg-indigo-600 text-white rounded-br-none"
-                      : "bg-gray-50 border border-gray-200 text-gray-800 rounded-bl-none shadow-sm"
-                  }`}>
-                    {msg.content}
+                  <div className={`flex flex-col ${msg.role === "user" ? "items-end" : "items-start"} max-w-[85%] sm:max-w-[80%]`}>
+                    <div
+                      className={`rounded-2xl px-3 py-2 sm:px-3.5 sm:py-2.5 text-xs sm:text-sm leading-relaxed ${
+                        msg.role === "user"
+                          ? "bg-indigo-600 text-white rounded-br-none"
+                          : "bg-gray-50 border border-gray-200 text-gray-800 rounded-bl-none shadow-sm"
+                      }`}
+                    >
+                      {msg.content}
+                    </div>
+
+                    {/* Action buttons */}
+                    {msg.role === "assistant" && msg.actions && msg.actions.length > 0 && (
+                      <div className="flex flex-wrap gap-1.5 sm:gap-2 mt-2">
+                        {msg.actions.map((action, actionIndex) => (
+                          /* FIXED: Added the missing <a tag here */
+                          <a
+                            key={actionIndex}
+                            href={action.url}
+                            target={action.type === "whatsapp" ? "_blank" : undefined}
+                            rel={action.type === "whatsapp" ? "noopener noreferrer" : undefined}
+                            className={`inline-flex items-center gap-1.5 px-3 py-1.5 rounded-full text-[11px] sm:text-xs font-semibold transition-colors shadow-sm ${
+                              action.type === "whatsapp"
+                                ? "bg-[#25D366] hover:bg-[#1ebe5b] text-white"
+                                : action.type === "call"
+                                ? "bg-indigo-600 hover:bg-indigo-500 text-white"
+                                : "bg-gray-100 hover:bg-gray-200 text-gray-700 border border-gray-300"
+                            }`}
+                          >
+                            <ActionIcon type={action.type} />
+                            {action.label}
+                          </a>
+                        ))}
+                      </div>
+                    )}
                   </div>
 
                   {msg.role === "user" && (
@@ -231,7 +303,7 @@ export default function ChatWidget() {
                     ? "bg-red-500 text-white animate-pulse shadow-lg shadow-red-500/30"
                     : "bg-gray-100 hover:bg-gray-200 text-gray-500 border border-gray-200"
                 }`}
-                title="Gemini Live Voice Input"
+                title="Voice Input"
               >
                 {isListening ? <MicOff className="w-4 h-4" /> : <Mic className="w-4 h-4" />}
               </button>

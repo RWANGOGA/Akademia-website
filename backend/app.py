@@ -1,15 +1,17 @@
 import os
 import re
+import random
 import sqlite3
 from fastapi import FastAPI, HTTPException
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.responses import Response
 from pydantic import BaseModel
+from typing import Optional, List
 from groq import Groq
 from dotenv import load_dotenv
 import requests
 from bs4 import BeautifulSoup
-from urllib.parse import urljoin, urlparse
+from urllib.parse import urljoin, urlparse, quote
 
 load_dotenv()
 
@@ -68,6 +70,207 @@ PROJECT_REGISTRY = {
     }
 }
 
+# =============================================================
+# HUMAN ESCALATION CONFIG
+# Real contact details live ONLY here — never let the LLM
+# generate or guess a phone/email/name. The backend is the
+# single source of truth for what gets shown to the user.
+#
+# IMPORTANT: contact links are NEVER embedded as raw text inside
+# the spoken/displayed message. They're returned as a separate
+# "actions" list so the frontend renders them as buttons, and TTS
+# never has to read a URL out loud.
+# =============================================================
+
+DIRECTOR_NAME = "our Director"  # e.g. "Director Gen Tanaka" if you want it named
+DIRECTOR_EMAIL = "gen@akademia.co.jp"
+DIRECTOR_PHONE_DISPLAY = "090-5756-3969"
+DIRECTOR_PHONE_TEL = "+819057563969"  # tel: links need international format
+DIRECTOR_WHATSAPP_NUMBER = "819057563969"  # international format, no symbols
+
+def build_whatsapp_url(prefill_text: str = "") -> str:
+    base = f"https://wa.me/{DIRECTOR_WHATSAPP_NUMBER}"
+    if prefill_text:
+        return f"{base}?text={quote(prefill_text)}"
+    return base
+
+def build_contact_actions(prefill_text: str = "") -> List[dict]:
+    """
+    Structured, clickable contact options. The frontend renders these
+    as buttons — never as inline text — so no URL is ever spoken by
+    TTS or shown as raw encoded text in the chat bubble.
+    """
+    return [
+        {
+            "type": "whatsapp",
+            "label": "Message us on WhatsApp",
+            "url": build_whatsapp_url(prefill_text),
+        },
+        {
+            "type": "call",
+            "label": f"Call {DIRECTOR_PHONE_DISPLAY}",
+            "url": f"tel:{DIRECTOR_PHONE_TEL}",
+        },
+        {
+            "type": "email",
+            "label": "Email us",
+            "url": f"mailto:{DIRECTOR_EMAIL}",
+        },
+    ]
+
+
+# -------------------------------------------------------------
+# WARM OPENERS
+# Picked at random so the handoff doesn't feel scripted/repetitive.
+# -------------------------------------------------------------
+
+WARM_OPENERS = [
+    "That's a great question.",
+    "Happy to help point you in the right direction here.",
+    "Good question — let's get you sorted properly.",
+    "Thanks for asking about this.",
+    "That's definitely something we can help with.",
+]
+
+def pick_opener() -> str:
+    return random.choice(WARM_OPENERS)
+
+
+# -------------------------------------------------------------
+# ESCALATION CATEGORIES
+# "message" is now pure natural speech — no links, no meta-commentary
+# about being automated. "prefill" is the WhatsApp pre-filled text,
+# kept separate so it never leaks into the spoken response.
+# -------------------------------------------------------------
+
+ESCALATION_CATEGORIES = {
+    "human_request": {
+        "keywords": [
+            "talk to a human", "speak to a human", "real person", "human agent",
+            "talk to the director", "speak to the director", "contact the director",
+            "talk to someone", "speak to someone",
+        ],
+        "message": (
+            f"Of course — give me just a moment to connect you with {DIRECTOR_NAME}. "
+            f"You'll find the quickest ways to reach us just below."
+        ),
+        "prefill": "Hi, I'd like to speak with someone from your team.",
+    },
+    "pricing": {
+        "keywords": [
+            "pricing", "price quote", "quote for", "how much would it cost",
+            "how much does it cost", "budget for", "cost estimate", "discount",
+        ],
+        "message": (
+            f"Since pricing depends on the scope of your project, let's get you "
+            f"a proper quote directly from {DIRECTOR_NAME} rather than a guess "
+            f"from me. Reach out using the options below and we'll get back to "
+            f"you quickly."
+        ),
+        "prefill": "Hi, I would like a pricing quote.",
+    },
+    "contract": {
+        "keywords": [
+            "invoice", "payment terms", "refund", "cancel my order",
+            "sign an nda", "sign a contract", "terms and conditions",
+        ],
+        "message": (
+            f"For contracts, invoices, and payment terms, {DIRECTOR_NAME} will "
+            f"want to go through the details with you personally, to make sure "
+            f"everything is accurate. Here are the quickest ways to connect."
+        ),
+        "prefill": "Hi, I need help with a contract or payment matter.",
+    },
+    "legal": {
+        "keywords": [
+            "legal", "lawsuit", "compliance issue", "data breach", "security incident",
+            "gdpr", "complaint", "dispute",
+        ],
+        "message": (
+            f"This is something {DIRECTOR_NAME} will want to hear about directly "
+            f"and as soon as possible. Please use the options below to reach us right away."
+        ),
+        "prefill": "Hi, I need to raise an urgent matter.",
+    },
+    "partnership": {
+        "keywords": [
+            "negotiate", "negotiation", "investment proposal", "investment opportunity",
+            "partnership agreement", "acquisition", "merger", "funding", "invest in",
+            "investor", "collaborate", "collaboration", "business proposal",
+        ],
+        "message": (
+            f"We'd genuinely love to explore this with you. {DIRECTOR_NAME} "
+            f"handles all of our partnership and investment conversations "
+            f"personally, so let's get you connected using the options below."
+        ),
+        "prefill": "Hi, I would like to discuss a partnership or business opportunity.",
+    },
+    "hr": {
+        "keywords": [
+            "salary", "compensation", "harassment", "workplace complaint",
+        ],
+        "message": (
+            f"This is something {DIRECTOR_NAME} should hear directly and "
+            f"personally. Please reach out using the options below whenever "
+            f"you're ready — we take matters like this seriously."
+        ),
+        "prefill": "",
+    },
+}
+
+# The exact prefix we ask the model to output when IT decides
+# (based on the conversation) that a human should take over, followed
+# by the category name, e.g. "ESCALATE_TO_HUMAN:pricing"
+ESCALATION_MARKER_PREFIX = "ESCALATE_TO_HUMAN"
+
+def default_escalation_message() -> str:
+    return (
+        f"Let's get you connected directly to {DIRECTOR_NAME} for this one. "
+        f"You'll find the quickest ways to reach us just below."
+    )
+
+
+def detect_escalation_category_by_keyword(message: str) -> Optional[str]:
+    lowered = message.lower()
+    for category, data in ESCALATION_CATEGORIES.items():
+        if any(keyword in lowered for keyword in data["keywords"]):
+            return category
+    return None
+
+
+def build_human_handoff_payload(category: Optional[str]) -> dict:
+    """
+    The ONLY place that generates human-handoff responses.
+    Returns {"response": <spoken/displayed text>, "actions": [<buttons>]}.
+    The "response" text NEVER contains a raw URL — contact options are
+    always returned separately as structured "actions" for the frontend
+    to render as buttons.
+    """
+    opener = pick_opener()
+    if category and category in ESCALATION_CATEGORIES:
+        data = ESCALATION_CATEGORIES[category]
+        body = data["message"]
+        prefill = data["prefill"]
+    else:
+        body = default_escalation_message()
+        prefill = ""
+
+    return {
+        "response": f"{opener} {body}",
+        "actions": build_contact_actions(prefill),
+    }
+
+
+def extract_escalation_category_from_llm_output(raw_response: str) -> Optional[str]:
+    match = re.search(r'ESCALATE_TO_HUMAN(?::(\w+))?', raw_response)
+    if not match:
+        return None
+    category = match.group(1)
+    if category and category in ESCALATION_CATEGORIES:
+        return category
+    return ""
+
+
 def crawl_entire_website(base_url: str, max_pages: int = 5) -> str:
     visited = set()
     to_visit = [base_url]
@@ -88,16 +291,13 @@ def crawl_entire_website(base_url: str, max_pages: int = 5) -> str:
             if response.status_code == 200:
                 soup = BeautifulSoup(response.text, 'html.parser')
 
-                # Extract links to other sub-pages on the same domain
                 for link in soup.find_all('a', href=True):
                     abs_url = urljoin(current_url, link['href'])
                     parsed_link = urlparse(abs_url)
                     if parsed_link.netloc == domain and abs_url not in visited and abs_url not in to_visit:
-                        # Skip anchor links or file downloads
                         if not any(abs_url.endswith(ext) for ext in ['.pdf', '.jpg', '.png', '.zip', '.css', '.js']):
                             to_visit.append(abs_url)
 
-                # Clean up noise
                 for element in soup(["script", "style", "nav", "footer", "noscript", "iframe"]):
                     element.extract()
 
@@ -114,41 +314,37 @@ def crawl_entire_website(base_url: str, max_pages: int = 5) -> str:
 
 def clean_text_for_speech(text: str) -> str:
     """
-    Strips markdown/formatting artifacts so TTS never reads out
-    literal symbols like ** or # or bullet dashes. Converts numbered/
-    bulleted lists into flowing spoken sentences.
+    Strips markdown/formatting artifacts AND raw URLs so TTS never
+    reads out literal symbols like ** or # or bullet dashes, and
+    never reads a URL character-by-character (e.g. "percent two C").
     """
     if not text:
         return ""
 
     cleaned = text
 
-    # Remove bold/italic markers: **text**, __text__, *text*, _text_
     cleaned = re.sub(r'\*\*(.*?)\*\*', r'\1', cleaned)
     cleaned = re.sub(r'__(.*?)__', r'\1', cleaned)
     cleaned = re.sub(r'\*(.*?)\*', r'\1', cleaned)
     cleaned = re.sub(r'(?<!\w)_(.*?)_(?!\w)', r'\1', cleaned)
 
-    # Remove markdown headers (#, ##, ### ...)
     cleaned = re.sub(r'^\s{0,3}#{1,6}\s*', '', cleaned, flags=re.MULTILINE)
 
-    # Remove inline code / code fences
     cleaned = re.sub(r'```.*?```', '', cleaned, flags=re.DOTALL)
     cleaned = re.sub(r'`([^`]*)`', r'\1', cleaned)
 
-    # Remove markdown links but keep the visible text: [label](url) -> label
     cleaned = re.sub(r'\[([^\]]+)\]\([^)]+\)', r'\1', cleaned)
 
-    # Convert numbered list markers ("1. ", "2) ") into pauses, not spoken digits+symbols
+    # Strip any raw URL entirely — never read a link character-by-character
+    cleaned = re.sub(r'https?://\S+', '', cleaned)
+    cleaned = re.sub(r'\bwww\.\S+', '', cleaned)
+
     cleaned = re.sub(r'^\s*\d+[\.\)]\s*', '', cleaned, flags=re.MULTILINE)
 
-    # Convert bullet markers (-, *, •) at line start into pauses
     cleaned = re.sub(r'^\s*[-\*•]\s*', '', cleaned, flags=re.MULTILINE)
 
-    # Collapse remaining stray markdown symbols
     cleaned = cleaned.replace('#', '').replace('*', '').replace('_', '')
 
-    # Normalize line breaks into natural pauses (periods) and collapse whitespace
     cleaned = re.sub(r'\n+', '. ', cleaned)
     cleaned = re.sub(r'\s{2,}', ' ', cleaned)
     cleaned = re.sub(r'\.{2,}', '.', cleaned)
@@ -209,9 +405,21 @@ async def update_universal_content(req: ContentUpdate):
 async def chat(req: ChatRequest):
     selected_project = PROJECT_REGISTRY.get(req.project_key.lower(), PROJECT_REGISTRY["akademia"])
 
-    # Deep multi-page crawl across sub-links of the target portal
+    # -------------------------------------------------------------
+    # STEP 1: Fast keyword pre-check — catches obvious cases WITHOUT
+    # even calling the LLM, and already knows the exact category.
+    # -------------------------------------------------------------
+    keyword_category = detect_escalation_category_by_keyword(req.message)
+    if keyword_category:
+        return build_human_handoff_payload(keyword_category)
+
+    # -------------------------------------------------------------
+    # STEP 2: Otherwise ask the LLM, instructing it to output
+    # "ESCALATE_TO_HUMAN:<category>" when a human should take over.
+    # -------------------------------------------------------------
     live_multi_page_content = crawl_entire_website(selected_project["url"], max_pages=6)
     directory_summary = "\n".join([f"- {p['name']} ({p['url']}): {p['description']}" for p in PROJECT_REGISTRY.values()])
+    category_names = ", ".join(ESCALATION_CATEGORIES.keys())
 
     completion = groq_client.chat.completions.create(
         messages=[
@@ -221,13 +429,23 @@ async def chat(req: ChatRequest):
                     f"You are Akademia's official front-desk receptionist and AI representative. "
                     f"Always speak using first-person plural pronouns ('we', 'us', 'our') when talking about Akademia "
                     f"and our sub-teams.\n\n"
-                    f"FORMATTING RULES (very important): This response may be read aloud by a "
+                    f"HUMAN ESCALATION RULE (very important): You do NOT have authority to quote prices, "
+                    f"negotiate contracts, discuss legal matters, handle complaints, discuss salaries or HR "
+                    f"issues, discuss partnerships/investment/business negotiations, or make any binding "
+                    f"commitment on behalf of the company. If the user's message falls into one of these "
+                    f"situations, respond with EXACTLY this token and nothing else, no punctuation, no extra "
+                    f"words: {ESCALATION_MARKER_PREFIX}:<category>\n"
+                    f"Where <category> is the single best match from this list: {category_names}. "
+                    f"For example: {ESCALATION_MARKER_PREFIX}:partnership\n\n"
+                    f"FORMATTING RULES (very important): For all other responses, this may be read aloud by a "
                     f"text-to-speech engine, so write in natural, flowing spoken sentences and short "
                     f"paragraphs only. Do NOT use markdown formatting of any kind — no asterisks, "
                     f"no bold, no headers, no numbered lists, no bullet points, no hyphen-dashes as "
-                    f"list markers. If you need to present multiple points, weave them into a single "
-                    f"conversational paragraph using connecting words like 'first', 'also', 'in addition', "
-                    f"and 'finally' instead of list formatting. Keep answers concise, warm, and informative.\n\n"
+                    f"list markers. NEVER include a raw URL or link in your response — if you need to "
+                    f"reference a page, describe it in words instead. If you need to present multiple "
+                    f"points, weave them into a single conversational paragraph using connecting words "
+                    f"like 'first', 'also', 'in addition', and 'finally' instead of list formatting. "
+                    f"Keep answers concise, warm, and informative.\n\n"
                     f"ECOSYSTEM DIRECTORY:\n{directory_summary}\n\n"
                     f"COMPREHENSIVE MULTI-PAGE CRAWLED DATA FOR {selected_project['name']}:\n{live_multi_page_content}"
                 )
@@ -238,7 +456,17 @@ async def chat(req: ChatRequest):
         temperature=0.3,
         max_tokens=1000,
     )
-    return {"response": completion.choices[0].message.content}
+
+    raw_response = completion.choices[0].message.content
+
+    # -------------------------------------------------------------
+    # STEP 3: Catch the marker even if the model wraps it in extra text.
+    # -------------------------------------------------------------
+    llm_category = extract_escalation_category_from_llm_output(raw_response)
+    if llm_category is not None:
+        return build_human_handoff_payload(llm_category or None)
+
+    return {"response": raw_response, "actions": []}
 
 @app.post("/tts")
 async def text_to_speech(req: TTSRequest):
