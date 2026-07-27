@@ -291,6 +291,73 @@ export default function HomePage() {
           </div>
         </div>
       </section>
+
+      {/* ================= ABOUT OUR DEVELOPMENT SERVICES ================= */}
+      <section className="bg-white text-slate-900 py-24 border-t border-slate-200">
+        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+          <div className="grid grid-cols-1 lg:grid-cols-2 gap-12 items-center">
+            <div className="relative rounded-lg overflow-hidden shadow-lg order-2 lg:order-1">
+              <img
+                src="https://realmdigital.com/app/uploads/2023/03/Development.webp"
+                alt="Dyna Wisdom development team at work"
+                className="w-full h-full object-cover"
+              />
+            </div>
+
+            <div className="order-1 lg:order-2">
+              <h2 className="text-4xl md:text-5xl font-bold text-slate-900 leading-tight mb-6">
+                About Our Development Services
+              </h2>
+
+              <div className="w-16 h-1 bg-yellow-400 mb-8"></div>
+
+              <p className="text-gray-600 text-lg leading-relaxed mb-6">
+                Dyna Wisdom is a leading Ugandan software development company, specialising in custom digital
+                solutions backed by the technical expertise and engineering discipline of our parent company,
+                Akademia Company Ltd, Japan. Our authority in the digital development sector is built on
+                delivering tailored, future-proof solutions that drive growth and operational excellence for our
+                clients.
+              </p>
+
+              <p className="text-gray-600 text-lg leading-relaxed mb-6">
+                By combining the latest advancements in technology with innovative thinking and deep industry
+                expertise, our team of skilled developers, designers, and strategists work hand-in-hand with our
+                clients to understand their unique requirements, goals, and challenges &mdash; enabling us to
+                create tailored digital products that empower businesses and foster growth.
+              </p>
+
+              <p className="text-gray-600 text-lg leading-relaxed">
+                We prioritise building future-proof solutions that can adapt and grow with your business in the
+                ever-evolving digital landscape. Our comprehensive services span everything from web and mobile
+                app development to system integrations and infrastructure optimisation, ensuring your technology
+                investments are aligned with your strategic objectives and built to last.
+              </p>
+            </div>
+          </div>
+        </div>
+      </section>
+
+      {/* ================= FINAL CTA SECTION ================= */}
+      <section className="bg-white text-slate-900 py-20 sm:py-24 md:py-28 border-t border-slate-200 px-4 sm:px-6">
+        <div className="max-w-4xl mx-auto text-center">
+          <h2 className="text-3xl sm:text-4xl md:text-5xl lg:text-6xl font-extrabold text-[#0B1E3D] leading-tight tracking-tight mb-6 sm:mb-8">
+            Ready to build, integrate, and deploy with confidence?
+          </h2>
+
+          <p className="text-gray-600 text-base sm:text-lg md:text-xl leading-relaxed max-w-3xl mx-auto mb-8 sm:mb-10">
+            Partner with Dyna Wisdom and unlock the full potential of your projects. Backed by
+            Akademia Japan's engineering standards, we guide you from initial concept to final
+            deployment, every step of the way. Start your journey towards digital excellence today.
+          </p>
+
+          <Link
+            href="/contact"
+            className="inline-block bg-yellow-400 hover:bg-yellow-500 text-slate-900 font-bold px-6 sm:px-10 py-4 sm:py-5 rounded-md transition-colors duration-300 text-sm sm:text-base md:text-lg shadow-lg w-full sm:w-auto max-w-sm sm:max-w-none"
+          >
+            Let's build something remarkable together!
+          </Link>
+        </div>
+      </section>
     </div>
   );
 }

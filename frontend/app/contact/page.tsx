@@ -121,21 +121,21 @@ export default function ContactPage() {
       <Header />
 
       {/* HERO */}
-      <section className="relative w-full overflow-hidden bg-gradient-to-br from-[#5B3FE0] via-[#4433E8] to-[#2F6BF0] pt-28 sm:pt-32 md:pt-40 pb-16 md:pb-24 px-4 sm:px-6">
-        <div className="absolute inset-0 opacity-25 pointer-events-none">
-          <div className="absolute -top-32 -left-32 w-72 h-72 md:w-[36rem] md:h-[36rem] rounded-full bg-white/10 blur-[60px] md:blur-[80px]" />
-          <div className="absolute top-0 left-1/3 w-56 h-56 md:w-[28rem] md:h-[28rem] rounded-full bg-white/10 blur-[70px] md:blur-[100px]" />
-          <div className="absolute -bottom-24 right-1/4 w-64 h-64 md:w-[32rem] md:h-[32rem] rounded-full bg-white/10 blur-[65px] md:blur-[90px]" />
-        </div>
-        <div className="relative max-w-5xl mx-auto text-center">
-          <h1 className="text-3xl sm:text-4xl md:text-6xl font-extrabold text-white tracking-tight mb-4 md:mb-6">
-            What Can We Help You With?
+      <section
+        className="relative w-full overflow-hidden pt-28 sm:pt-32 md:pt-40 pb-24 md:pb-32 px-4 sm:px-6"
+        style={{
+          backgroundImage:
+            "linear-gradient(rgba(11,30,61,0.65), rgba(11,30,61,0.75)), url('/images/image%20copy%2016.png')",
+          backgroundSize: "cover",
+          backgroundPosition: "center",
+          backgroundRepeat: "no-repeat",
+        }}
+      >
+        <div className="relative max-w-5xl mx-auto">
+          <h1 className="text-4xl sm:text-5xl md:text-7xl font-extrabold text-white tracking-tight mb-4 md:mb-6">
+            Contact Us
           </h1>
-          <div className="w-16 h-1 bg-yellow-400 mx-auto mb-6 rounded-full" />
-          <p className="text-white/90 font-semibold uppercase tracking-wide text-xs sm:text-sm md:text-base leading-relaxed max-w-3xl mx-auto">
-            Whatever you need — a project inquiry, a partnership, a career question, or
-            account help — tell us below and we&apos;ll get back to you within 1 business day.
-          </p>
+          <div className="w-16 h-1 bg-yellow-400 rounded-full" />
         </div>
       </section>
 
@@ -145,6 +145,15 @@ export default function ContactPage() {
           onSubmit={handleSubmit}
           className="max-w-3xl mx-auto bg-white rounded-xl shadow-xl border border-slate-100 p-6 sm:p-8 md:p-12"
         >
+          <div className="mb-8">
+            <h2 className="text-2xl sm:text-3xl font-extrabold text-[#0B1E3D] mb-2">
+              How can we help you?
+            </h2>
+            <p className="text-slate-500 text-sm sm:text-base">
+              Reach out below, and we&apos;ll be in touch.
+            </p>
+          </div>
+
           <div className="mb-6">
             <label className="block text-sm font-semibold text-slate-500 mb-2">
               Inquiry Type<span className="text-red-500">*</span>

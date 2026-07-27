@@ -5,7 +5,6 @@ import Link from "next/link";
 import { motion, AnimatePresence } from "framer-motion";
 
 export default function ServicesPage() {
-  const [activeTab, setActiveTab] = useState("AI & Data");
   const [approachIndex, setApproachIndex] = useState(0);
 
   const techStack = [
@@ -15,24 +14,81 @@ export default function ServicesPage() {
     "TailwindCSS", "Framer Motion", "GraphQL", "Firebase"
   ];
 
-  const serviceCategories = {
-    "AI & Data": [
-      "AI-Powered Products & Business Services",
-      "AI Consulting & Strategy",
-      "Data Science & Analytics",
-      "Database Design & Management",
-      "AI Engineering Talent",
-      "Human-Centred AI Integration",
-      "AI Across the Software Lifecycle",
-      "Data Governance Consulting"
-    ],
-    "Application Development": ["Native Mobile Apps", "Cross-Platform Apps", "Web Applications", "API Development"],
-    "Cloud": ["Cloud Migration", "Managed Cloud Services", "Infrastructure as Code", "Serverless Architecture"],
-    "Cybersecurity": ["Security Audits", "Managed Security Services", "Compliance Consulting", "Penetration Testing"],
-    "Digital Transformation": ["Strategy Consulting", "Process Automation", "Legacy Modernization"],
-    "Software Engineering": ["Custom Software Development", "DevOps Engineering", "QA & Testing"],
-    "Enterprise Applications": ["ERP Solutions", "CRM Development", "Enterprise Integration"]
-  };
+  // Core service offerings, customised for Dyna Wisdom / Akademia
+  const coreServices = [
+    {
+      title: "Web Development",
+      description:
+        "We blend creativity, technology, and strategy to build engaging, high-performance websites that elevate your digital presence. Working closely with our clients, we craft custom solutions that deliver seamless, responsive, user-friendly experiences that drive engagement and conversions.",
+      link: true,
+    },
+    {
+      title: "iOS & Android Mobile Development",
+      description:
+        "With a focus on user experience, performance, and scalability, we build intuitive, feature-rich mobile apps that cater to the evolving needs of your users. We collaborate closely with our clients to craft custom mobile solutions that thrive in the competitive app marketplace.",
+      link: true,
+    },
+    {
+      title: "Custom Software Development",
+      description:
+        "Embracing state-of-the-art technologies and Akademia's Japanese engineering standards, we build flexible, secure, and high-performing software that optimises business processes and solves unique problems for fast-growing businesses.",
+      link: true,
+    },
+    {
+      title: "AI & Data Solutions",
+      description:
+        "Leveraging machine learning and deep analytics, we transform raw data into intelligent, actionable systems &mdash; from AI-powered products and consulting to data governance and human-centred AI integration.",
+      link: false,
+    },
+    {
+      title: "System Integration & APIs",
+      description:
+        "Our integration experts connect disparate systems, applications, and data sources for smooth data exchange. We design and implement powerful APIs that reduce manual effort, minimise errors, and streamline workflows.",
+      link: false,
+    },
+    {
+      title: "Cloud & DevOps Engineering",
+      description:
+        "We streamline the software development lifecycle by fostering collaboration between development and operations, with automated builds, tests, and deployments &mdash; backed by Akademia's private cloud infrastructure in Tokyo.",
+      link: false,
+    },
+    {
+      title: "Content Management Systems (CMS)",
+      description:
+        "We develop intuitive, flexible, and secure CMS platforms that give our clients complete control over their digital content, from creation and management to publishing.",
+      link: false,
+    },
+    {
+      title: "Database Design & Management",
+      description:
+        "We create and maintain efficient, scalable, and secure databases that form the backbone of your digital solutions, tailored to optimise storage, retrieval, and processing.",
+      link: false,
+    },
+  ];
+
+  // Checklist of how Dyna Wisdom helps businesses navigate challenges
+  const challenges = [
+    {
+      title: "Custom Software Development Solutions",
+      description:
+        "We ensure that every digital solution is a perfect fit for your operational requirements and growth aspirations.",
+    },
+    {
+      title: "Strategic Consultation and Planning",
+      description:
+        "We partner with you to understand your vision and challenges, and create a strategic roadmap that aligns with your long-term objectives.",
+    },
+    {
+      title: "Agile Development and Integration",
+      description:
+        "Our agile approach to development ensures flexibility, rapid delivery, and seamless integration with your existing systems.",
+    },
+    {
+      title: "Continuous Support and Innovation",
+      description:
+        "Beyond initial development, we offer ongoing support and are committed to continually innovating, so your digital solutions evolve in tandem with your business and the broader tech landscape &mdash; backed by Akademia's Japanese engineering standards.",
+    },
+  ];
 
   const steps = [
     { title: "Discovery", desc: "A rigorous diagnostic phase involving technical audits and stakeholder alignment to define precise project requirements.", step: "01" },
@@ -65,39 +121,81 @@ export default function ServicesPage() {
         </div>
       </section>
 
-      {/* SECTION 2: Services We Provide */}
-      <section className="py-16 md:py-24 px-4 sm:px-6 lg:px-8 max-w-7xl mx-auto">
-        <h2 className="text-3xl sm:text-4xl md:text-5xl font-black text-slate-950 mb-10 md:mb-16 text-center">
-          Services we provide
-        </h2>
-        <div className="grid grid-cols-1 md:grid-cols-12 gap-8 md:gap-12">
-          <div className="md:col-span-4 flex flex-wrap md:flex-col gap-2 md:gap-4 md:space-y-0 md:border-r border-slate-200 overflow-x-auto md:overflow-visible pb-2 md:pb-0">
-            {Object.keys(serviceCategories).map((category) => (
-              <button
-                key={category}
-                onClick={() => setActiveTab(category)}
-                className={`flex-shrink-0 md:block md:w-full text-left text-sm sm:text-base md:text-xl font-semibold px-4 py-2 md:p-4 rounded-full md:rounded-none transition-colors ${
-                  activeTab === category
-                    ? "text-yellow-600 bg-slate-50 md:border-r-2 md:border-yellow-600"
-                    : "text-slate-600 hover:text-slate-950 bg-slate-100 md:bg-transparent"
-                }`}
+      {/* SECTION 2: Core Services */}
+      <section className="py-16 md:py-24 px-4 sm:px-6 lg:px-8 bg-slate-50">
+        <div className="max-w-7xl mx-auto">
+          <h2 className="text-3xl sm:text-4xl md:text-5xl font-black text-slate-950 mb-4">
+            Core Services
+          </h2>
+          <div className="w-16 h-1.5 bg-yellow-400 mb-6 md:mb-8"></div>
+          <p className="text-base md:text-lg text-gray-600 leading-relaxed max-w-4xl mb-10 md:mb-16">
+            Dyna Wisdom's core services include database design, custom software development, mobile app
+            development,{" "}
+            <Link href="/services" className="text-blue-600 hover:text-blue-700 underline underline-offset-2">
+              web application development
+            </Link>
+            , system integration, as well as API development and integration. This means that regardless of the
+            complexity or scale of your project, backed by Akademia's Japanese engineering standards, we deliver
+            bespoke solutions that align with your strategic goals.
+          </p>
+
+          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-6 md:gap-8">
+            {coreServices.map((service, index) => (
+              <div
+                key={index}
+                className="bg-white border border-slate-200 rounded-lg p-6 md:p-8 flex flex-col"
               >
-                {category}
-              </button>
+                <h3 className="text-xl md:text-2xl font-bold text-slate-950 mb-3">{service.title}</h3>
+                <div className="w-10 h-1 bg-yellow-400 mb-4"></div>
+                <p className="text-sm md:text-base text-gray-600 leading-relaxed flex-grow">
+                  {service.description}
+                </p>
+                {service.link && (
+                  <Link
+                    href="/services"
+                    className="inline-flex items-center gap-1 text-blue-600 hover:text-blue-700 font-medium mt-6 text-sm md:text-base"
+                  >
+                    Find out more <span>›</span>
+                  </Link>
+                )}
+              </div>
             ))}
           </div>
-          <div className="md:col-span-8">
-            <AnimatePresence mode="wait">
-              <motion.div key={activeTab} initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }} exit={{ opacity: 0, y: -10 }} className="grid grid-cols-1 sm:grid-cols-2 gap-4 md:gap-6">
-                {serviceCategories[activeTab as keyof typeof serviceCategories].map((service, index) => (
-                  <div key={index} className="flex items-center justify-between p-4 md:p-6 bg-slate-50 hover:bg-slate-100 border border-slate-100 transition-colors cursor-pointer group">
-                    <span className="font-semibold text-sm md:text-base text-slate-900">{service}</span>
-                    <span className="text-slate-400 group-hover:text-yellow-600 transition-colors">→</span>
-                  </div>
-                ))}
-              </motion.div>
-            </AnimatePresence>
-          </div>
+        </div>
+      </section>
+
+      {/* SECTION 2b: How Dyna Wisdom's development services help businesses navigate challenges */}
+      <section className="py-16 md:py-24 px-4 sm:px-6 lg:px-8 max-w-7xl mx-auto">
+        <h2 className="text-3xl sm:text-4xl md:text-5xl font-black text-slate-950 mb-4">
+          How Dyna Wisdom's development services help businesses navigate challenges
+        </h2>
+        <div className="w-16 h-1.5 bg-yellow-400 mb-6 md:mb-8"></div>
+        <p className="text-base md:text-lg text-gray-600 leading-relaxed max-w-4xl mb-10 md:mb-16">
+          The digital landscape is shifting rapidly. Don't get left behind. Dyna Wisdom's robust development
+          solutions and integrated management systems, backed by Akademia Company Ltd, Japan, are tailored to
+          meet the unique challenges of your business.
+        </p>
+
+        <div className="relative max-w-4xl">
+          {challenges.map((item, index) => (
+            <div key={index} className="relative flex gap-4 md:gap-6 pb-8 md:pb-10 last:pb-0">
+              {/* connector line */}
+              {index !== challenges.length - 1 && (
+                <div className="absolute left-[15px] md:left-[19px] top-8 md:top-10 bottom-0 w-0.5 bg-slate-200"></div>
+              )}
+              <div
+                className={`flex-shrink-0 w-8 h-8 md:w-10 md:h-10 rounded-full flex items-center justify-center z-10 ${
+                  index < 2 ? "bg-blue-600 text-white" : "bg-slate-200 text-slate-500"
+                }`}
+              >
+                ✓
+              </div>
+              <div className="bg-slate-50 rounded-lg p-5 md:p-6 flex-1">
+                <h3 className="text-lg md:text-xl font-bold text-slate-950 mb-2">{item.title}</h3>
+                <p className="text-sm md:text-base text-gray-600 leading-relaxed">{item.description}</p>
+              </div>
+            </div>
+          ))}
         </div>
       </section>
 

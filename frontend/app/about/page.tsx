@@ -89,6 +89,34 @@ export default function AboutUsPage() {
     { title: "Global Mindset", text: "Although proudly Ugandan, we design products and services that meet international standards and serve customers worldwide." },
   ];
 
+  // --- WHY CHOOSE DYNA WISDOM CONTENT ---
+  const whyChooseUs = [
+    {
+      title: "Expertise",
+      text: "Our teams combine Japanese engineering discipline from Akademia with hands-on Ugandan talent across AI, software, mobile, and cloud development.",
+    },
+    {
+      title: "Customised Solutions",
+      text: "Every engagement is shaped around your unique goals, ensuring outcomes that are aligned with what actually moves your business forward.",
+    },
+    {
+      title: "Innovation",
+      text: "We invest continuously in AI, machine learning, and emerging technologies so our clients stay ahead rather than catching up.",
+    },
+    {
+      title: "Quality",
+      text: "We are committed to delivering solutions that are reliable, secure, and built to last, so you can trust what we build for you.",
+    },
+    {
+      title: "Partnership",
+      text: "We invest in long-term relationships built on trust and transparency, working closely with you as your needs evolve.",
+    },
+    {
+      title: "Agile",
+      text: "Our agile approach breaks projects into measurable milestones, letting us adapt quickly and deliver successful outcomes on time.",
+    },
+  ];
+
   // --- HERO WORD ANIMATION ---
   const heroWords = ["Get", "to", "Know", "Your", "Software", "Experts"];
 
@@ -416,6 +444,34 @@ export default function AboutUsPage() {
               <p>As artificial intelligence evolves, human wisdom becomes more—not less—important.</p>
               <p>Dyna Wisdom exists to bring these two forms of intelligence together, creating technology that is not only powerful, but purposeful.</p>
             </div>
+          </div>
+        </div>
+      </section>
+
+      {/* ================= WHY CHOOSE DYNA WISDOM ================= */}
+      <section className="py-20 sm:py-24 bg-slate-100 text-slate-900 px-6 sm:px-12">
+        <div className="max-w-7xl mx-auto">
+          <h2 className="text-3xl sm:text-4xl md:text-5xl font-extrabold text-[#0B1E3D] mb-4 sm:mb-6">
+            Why Choose Dyna Wisdom?
+          </h2>
+          <div className="w-16 h-1 bg-yellow-500 rounded-full mb-10 sm:mb-14"></div>
+
+          <div className="grid sm:grid-cols-2 lg:grid-cols-3 gap-5 sm:gap-6">
+            {whyChooseUs.map((item, idx) => (
+              <div
+                key={idx}
+                className="bg-white rounded-md border border-slate-200 p-6 sm:p-8"
+              >
+                <div className="border-l-4 border-[#0B1E3D] pl-4 sm:pl-5">
+                  <h3 className="text-xl sm:text-2xl font-bold text-[#0B1E3D] mb-3">
+                    {item.title}
+                  </h3>
+                  <p className="text-slate-600 text-sm sm:text-base leading-relaxed">
+                    {item.text}
+                  </p>
+                </div>
+              </div>
+            ))}
           </div>
         </div>
       </section>
