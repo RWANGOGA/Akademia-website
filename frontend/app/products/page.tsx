@@ -43,15 +43,17 @@ export default function ProductsPage() {
     },
   ];
 
+  // FIXED: Added "as const" for strict TypeScript compatibility
   const heroContainer = {
     hidden: {},
     visible: { transition: { staggerChildren: 0.12, delayChildren: 0.1 } },
-  };
+  } as const;
 
+  // FIXED: Added "as const" for strict TypeScript compatibility
   const heroWord = {
     hidden: { opacity: 0, y: 30 },
-    visible: { opacity: 1, y: 0, transition: { duration: 0.6, ease: "easeOut" } },
-  };
+    visible: { opacity: 1, y: 0, transition: { duration: 0.6, ease: "easeOut" as const } },
+  } as const;
 
   const heroWords = ["What", "We", "Build"];
 

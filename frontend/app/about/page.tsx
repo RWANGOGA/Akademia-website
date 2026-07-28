@@ -119,16 +119,16 @@ export default function AboutUsPage() {
         delayChildren: 0.1,
       },
     },
-  };
+  } as const; // Added as const for strict TypeScript compatibility
 
   const heroWord = {
     hidden: { opacity: 0, y: 30 },
     visible: {
       opacity: 1,
       y: 0,
-      transition: { duration: 0.6, ease: "easeOut" },
+      transition: { duration: 0.6, ease: "easeOut" as const }, // <-- FIXED: Added "as const"
     },
-  };
+  } as const; // Added as const for strict TypeScript compatibility
 
   return (
     <div className="min-h-screen bg-[#0a1120] text-white">
