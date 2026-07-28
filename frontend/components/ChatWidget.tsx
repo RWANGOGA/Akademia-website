@@ -98,7 +98,8 @@ export default function ChatWidget() {
   // Play audio response via TTS backend endpoint.
   const playAudio = async (text: string) => {
     try {
-      const res = await fetch("http://127.0.0.1:8000/tts", {
+      // FIXED: Changed to relative path for production
+      const res = await fetch("/tts", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ text })
@@ -123,7 +124,8 @@ export default function ChatWidget() {
     setIsThinking(true);
 
     try {
-      const res = await fetch("http://127.0.0.1:8000/chat", {
+      // FIXED: Changed to relative path for production
+      const res = await fetch("/chat", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ message: userMessage, project_key: projectKey })
@@ -248,7 +250,6 @@ export default function ChatWidget() {
                     {msg.role === "assistant" && msg.actions && msg.actions.length > 0 && (
                       <div className="flex flex-wrap gap-1.5 sm:gap-2 mt-2">
                         {msg.actions.map((action, actionIndex) => (
-                          /* FIXED: Added the missing <a tag here */
                           <a
                             key={actionIndex}
                             href={action.url}
