@@ -176,7 +176,7 @@ export default function AboutUsPage() {
               <div className="space-y-4 text-gray-300">
                 <p>
                   <span className="text-white font-bold block md:inline">President:</span>{" "}
-                  Gen Suzuki
+                  Musoke Moses
                 </p>
                 <p>
                   <span className="text-white font-bold block md:inline">Company Address:</span>{" "}

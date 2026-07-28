@@ -27,7 +27,7 @@ const OFFICE_LAT = 0.2990038;
 const OFFICE_LNG = 32.6087117;
 const OFFICE_MAPS_LINK = "https://maps.google.com/?cid=320021674925450370";
 const OFFICE_PHONE_DISPLAY = "090-5756-3969";
-const OFFICE_EMAIL_DISPLAY = "gen@akademia.co.jp";
+const OFFICE_EMAIL_DISPLAY = "ai-pod@akademia.sakura.ne.jp";
 
 type FormState = {
   inquiryType: string;
@@ -297,7 +297,7 @@ export default function ContactPage() {
               allowFullScreen
               loading="lazy"
               referrerPolicy="no-referrer-when-downgrade"
-              title="Akademia Uganda Office Location"
+              title="Dyna Wisdom Office Location"
             />
           </div>
 
