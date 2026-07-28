@@ -98,9 +98,10 @@ export default function HomePage() {
 
         <div className="relative z-10 max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-20">
           <div className="max-w-3xl">
+            {/* FIXED: Second line is now indented so it doesn't start at the exact same point */}
             <h1 className="text-5xl md:text-6xl lg:text-7xl font-bold text-white leading-tight mb-6 drop-shadow-md">
               Dyna Wisdom<br />
-              Uganda
+              <span className="ml-6 md:ml-10 lg:ml-16">Uganda</span>
             </h1>
 
             <p className="text-lg md:text-xl text-yellow-400 font-medium mb-4 max-w-2xl drop-shadow-sm">
@@ -200,7 +201,7 @@ export default function HomePage() {
         </div>
       </section>
 
-      {/* ================= CORE CAPABILITIES (UPDATED FOR MOBILE IMAGE PLACEMENT) ================= */}
+      {/* ================= CORE CAPABILITIES (UPDATED FOR STAGGERED INDENTATION) ================= */}
       <section className="bg-white text-slate-900 py-24 border-t border-slate-200">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
           <h2 className="text-4xl md:text-5xl font-bold text-slate-900 mb-16 tracking-tight">
@@ -208,12 +209,14 @@ export default function HomePage() {
           </h2>
           <div className="grid grid-cols-1 lg:grid-cols-2 gap-12 items-start">
             <div className="flex flex-col space-y-4">
-              {capabilities.map((capability) => {
+              {capabilities.map((capability, index) => {
                 const isSelected = activeTab === capability.id;
                 return (
                   <div key={capability.id} className="group">
                     <button
                       onClick={() => setActiveTab(capability.id)}
+                      // FIXED: Added inline style to stagger the starting point of each heading
+                      style={{ paddingLeft: `${index * 0.75}rem` }} 
                       className={`w-full text-left font-bold text-2xl md:text-3xl transition-all duration-300 py-2 border-b border-transparent ${
                         isSelected ? "text-slate-950 tracking-wide" : "text-gray-400 hover:text-slate-600"
                       }`}
@@ -227,6 +230,8 @@ export default function HomePage() {
                         animate={{ opacity: 1, height: "auto" }}
                         exit={{ opacity: 0, height: 0 }}
                         className="pt-2 pb-4 pr-4 max-w-xl"
+                        // Match the indentation of the parent button for the description
+                        style={{ paddingLeft: `${index * 0.75}rem` }}
                       >
                         {/* Mobile-only image: appears immediately under the clicked capability, before the text */}
                         <div className="lg:hidden w-full aspect-video max-w-sm bg-slate-50 border border-slate-100 rounded-lg flex items-center justify-center p-4 overflow-hidden shadow-sm mb-4">

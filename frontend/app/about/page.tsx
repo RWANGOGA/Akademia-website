@@ -4,15 +4,6 @@ import Link from "next/link";
 import { motion } from "framer-motion";
 
 export default function AboutUsPage() {
-  const products = [
-    { name: "AI AVATAR AKADEMIA", link: "https://ai-avatar.akademia.co.jp", desc: "Interactive AI-driven avatar solutions.", image: "/images/image copy 10.png" },
-    { name: "VIRTUAL WORLD", link: "https://vf.akademia.co.jp/", desc: "Immersive cyberspace environments.", image: "/images/image copy 11.png" },
-    { name: "AIPOD", link: "https://ai-daily-report.akademia.co.jp/", desc: "AI-powered daily reporting systems.", image: "/images/image copy 13.png" },
-    { name: "TRANSLATION", link: "https://uj-tc-api.akademia.co.jp/", desc: "Advanced linguistic translation services.", image: "/images/image copy 12.png" },
-    { name: "AI DOJO", link: "https://ai-dojo-opal.vercel.app/", desc: "Skill development and training platform.", image: "/images/image copy 15.png" },
-    { name: "AI RECRUITER", link: "https://ai-recruiter.akademia.co.jp", desc: "Automated AI talent acquisition.", image: "/images/image copy 14.png" },
-  ];
-
   const solutions = [
     "Artificial Intelligence", "Machine Learning", "Computer Vision", 
     "Deep Learning", "Cryptocurrency projects", "Big Data", 
@@ -141,21 +132,6 @@ export default function AboutUsPage() {
 
   return (
     <div className="min-h-screen bg-[#0a1120] text-white">
-      {/* SITE-WIDE HEADER */}
-      <header className="fixed top-0 w-full z-50 bg-[#0a1120]/90 backdrop-blur-md border-b border-white/10 p-6">
-        <nav className="max-w-7xl mx-auto flex justify-between items-center">
-          <Link href="/" className="text-2xl font-bold tracking-tighter text-yellow-500">DYNA WISDOM</Link>
-          <div className="flex gap-8 font-medium">
-            <Link href="/" className="hover:text-yellow-500 transition-colors">Home</Link>
-            <Link href="/services" className="hover:text-yellow-500 transition-colors">Services</Link>
-            <Link href="/about" className="text-yellow-500">About Us</Link>
-          </div>
-          <Link href="/dashboard" className="bg-yellow-500 text-black px-6 py-2 rounded font-bold hover:bg-yellow-400 transition-all">
-            Dashboard
-          </Link>
-        </nav>
-      </header>
-
       {/* HERO SECTION */}
       <section className="relative w-full min-h-[60vh] flex flex-col items-center justify-center p-12 overflow-hidden pt-32">
         <video
@@ -248,29 +224,29 @@ export default function AboutUsPage() {
         </div>
       </section>
 
-      {/* PRODUCTS SECTION */}
-      <section className="py-24 bg-white text-slate-900">
-        <div className="max-w-7xl mx-auto px-12">
-          <h2 className="text-5xl font-bold mb-16 text-center">Our Products</h2>
-          <div className="space-y-24">
-            {products.map((product, idx) => (
-              <div key={idx} className={`flex flex-col md:flex-row items-center gap-16 ${idx % 2 !== 0 ? 'md:flex-row-reverse' : ''}`}>
-                <div className="md:w-1/2">
-                  <h3 className="text-4xl font-bold mb-6">{product.name}</h3>
-                  <p className="text-lg text-slate-600 mb-8">{product.desc}</p>
-                  <Link href={product.link} target="_blank" className="inline-block bg-slate-900 text-white px-8 py-3 rounded font-bold hover:bg-yellow-500 transition-all">
-                    View Project
-                  </Link>
-                </div>
-                <div className="md:w-1/2 w-full">
-                  <div className="w-full h-[350px] bg-gray-100 rounded-lg shadow-lg overflow-hidden border border-gray-200">
-                    <img src={product.image} alt={product.name} className="w-full h-full object-cover" />
-                  </div>
-                </div>
-              </div>
-            ))}
+      {/* PRODUCTS CTA SECTION */}
+      <section className="relative w-full h-[480px] md:h-[560px] overflow-hidden">
+        <Link href="/products" className="group block w-full h-full">
+          {/* Background image, cropped from the top so the plain/empty bottom part is hidden */}
+          <div
+            className="absolute inset-0 bg-cover bg-no-repeat bg-top transition-transform duration-500 group-hover:scale-105"
+            style={{ backgroundImage: "url('/images/image%20copy%2022.png')" }}
+          />
+          {/* Dark overlay for text legibility */}
+          <div className="absolute inset-0 bg-black/55 group-hover:bg-black/65 transition-colors duration-500" />
+
+          <div className="relative z-10 h-full flex flex-col items-center justify-center text-center px-6">
+            <h2 className="text-4xl md:text-6xl font-bold text-white mb-6">
+              Our Products
+            </h2>
+            <p className="text-lg md:text-xl text-gray-200 max-w-2xl mb-8">
+              Explore the AI-powered platforms and solutions we've built.
+            </p>
+            <span className="inline-block bg-yellow-500 text-black px-8 py-3 rounded font-bold group-hover:bg-yellow-400 transition-all">
+              View All Products
+            </span>
           </div>
-        </div>
+        </Link>
       </section>
 
       {/* DYNA WISDOM ADVANTAGES */}

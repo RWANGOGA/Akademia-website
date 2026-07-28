@@ -71,6 +71,7 @@ export default function Header() {
               </Link>
             </div>
           ))}
+          <Link href="/products" className="hover:text-yellow-400 transition-colors">Products</Link>
           <Link href="/about" className="hover:text-yellow-400 transition-colors">About Us</Link>
           <Link href="/contact" className="hover:text-yellow-400 transition-colors">Contact</Link>
         </div>
@@ -167,6 +168,13 @@ export default function Header() {
               );
             })}
 
+            <Link
+              href="/products"
+              onClick={closeMobileMenu}
+              className="block py-3 text-white font-medium text-base border-b border-slate-800/60"
+            >
+              Products
+            </Link>
             <Link
               href="/about"
               onClick={closeMobileMenu}
