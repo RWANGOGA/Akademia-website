@@ -1,10 +1,13 @@
 import os
 import re
 import random
-import sqlite3
-from fastapi import FastAPI, HTTPException
+import uuid
+import shutil
+import psycopg2  # Replaced sqlite3 with psycopg2 for Docker PostgreSQL
+from fastapi import FastAPI, HTTPException, UploadFile, File, Form
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.responses import Response
+from fastapi.staticfiles import StaticFiles  # Added to serve uploaded images/videos
 from pydantic import BaseModel
 from typing import Optional, List
 from groq import Groq
@@ -19,7 +22,7 @@ app = FastAPI(title="Akademia Multi-Page Deep Crawler & Neural Core", version="7
 
 app.add_middleware(
     CORSMiddleware,
-    allow_origins=["http://localhost:3000"],
+    allow_origins=["http://localhost:3000", "http://localhost", "https://ai-pod.net"], # Added production domain
     allow_credentials=True,
     allow_methods=["*"],
     allow_headers=["*"],
@@ -27,10 +30,23 @@ app.add_middleware(
 
 groq_client = Groq(api_key=os.getenv("GROQ_API_KEY"))
 
+# =============================================================
+# DATABASE CONNECTION (Updated to PostgreSQL for Docker)
+# =============================================================
 def get_db_connection():
-    conn = sqlite3.connect("akademia_cms.db")
-    conn.row_factory = sqlite3.Row
-    return conn
+    return psycopg2.connect(
+        dbname="akademia_cms",
+        user="akademia_admin",
+        password="akademia_123",
+        host="db"  # "db" is the service name in docker-compose.yml
+    )
+
+# =============================================================
+# STATIC FILES (To serve uploaded images/videos to the frontend)
+# =============================================================
+UPLOAD_DIR = "uploads"
+os.makedirs(UPLOAD_DIR, exist_ok=True)
+app.mount("/uploads", StaticFiles(directory=UPLOAD_DIR), name="uploads")
 
 PROJECT_REGISTRY = {
     "akademia": {
@@ -72,21 +88,12 @@ PROJECT_REGISTRY = {
 
 # =============================================================
 # HUMAN ESCALATION CONFIG
-# Real contact details live ONLY here — never let the LLM
-# generate or guess a phone/email/name. The backend is the
-# single source of truth for what gets shown to the user.
-#
-# IMPORTANT: contact links are NEVER embedded as raw text inside
-# the spoken/displayed message. They're returned as a separate
-# "actions" list so the frontend renders them as buttons, and TTS
-# never has to read a URL out loud.
 # =============================================================
-
-DIRECTOR_NAME = "our Director"  # e.g. "Director Gen Tanaka" if you want it named
+DIRECTOR_NAME = "our Director"
 DIRECTOR_EMAIL = "gen@akademia.co.jp"
 DIRECTOR_PHONE_DISPLAY = "090-5756-3969"
-DIRECTOR_PHONE_TEL = "+819057563969"  # tel: links need international format
-DIRECTOR_WHATSAPP_NUMBER = "819057563969"  # international format, no symbols
+DIRECTOR_PHONE_TEL = "+819057563969"
+DIRECTOR_WHATSAPP_NUMBER = "819057563969"
 
 def build_whatsapp_url(prefill_text: str = "") -> str:
     base = f"https://wa.me/{DIRECTOR_WHATSAPP_NUMBER}"
@@ -95,140 +102,58 @@ def build_whatsapp_url(prefill_text: str = "") -> str:
     return base
 
 def build_contact_actions(prefill_text: str = "") -> List[dict]:
-    """
-    Structured, clickable contact options. The frontend renders these
-    as buttons — never as inline text — so no URL is ever spoken by
-    TTS or shown as raw encoded text in the chat bubble.
-    """
     return [
-        {
-            "type": "whatsapp",
-            "label": "Message us on WhatsApp",
-            "url": build_whatsapp_url(prefill_text),
-        },
-        {
-            "type": "call",
-            "label": f"Call {DIRECTOR_PHONE_DISPLAY}",
-            "url": f"tel:{DIRECTOR_PHONE_TEL}",
-        },
-        {
-            "type": "email",
-            "label": "Email us",
-            "url": f"mailto:{DIRECTOR_EMAIL}",
-        },
+        {"type": "whatsapp", "label": "Message us on WhatsApp", "url": build_whatsapp_url(prefill_text)},
+        {"type": "call", "label": f"Call {DIRECTOR_PHONE_DISPLAY}", "url": f"tel:{DIRECTOR_PHONE_TEL}"},
+        {"type": "email", "label": "Email us", "url": f"mailto:{DIRECTOR_EMAIL}"},
     ]
 
-
-# -------------------------------------------------------------
-# WARM OPENERS
-# Picked at random so the handoff doesn't feel scripted/repetitive.
-# -------------------------------------------------------------
-
 WARM_OPENERS = [
-    "That's a great question.",
-    "Happy to help point you in the right direction here.",
-    "Good question — let's get you sorted properly.",
-    "Thanks for asking about this.",
+    "That's a great question.", "Happy to help point you in the right direction here.",
+    "Good question — let's get you sorted properly.", "Thanks for asking about this.",
     "That's definitely something we can help with.",
 ]
 
 def pick_opener() -> str:
     return random.choice(WARM_OPENERS)
 
-
-# -------------------------------------------------------------
-# ESCALATION CATEGORIES
-# "message" is now pure natural speech — no links, no meta-commentary
-# about being automated. "prefill" is the WhatsApp pre-filled text,
-# kept separate so it never leaks into the spoken response.
-# -------------------------------------------------------------
-
 ESCALATION_CATEGORIES = {
     "human_request": {
-        "keywords": [
-            "talk to a human", "speak to a human", "real person", "human agent",
-            "talk to the director", "speak to the director", "contact the director",
-            "talk to someone", "speak to someone",
-        ],
-        "message": (
-            f"Of course — give me just a moment to connect you with {DIRECTOR_NAME}. "
-            f"You'll find the quickest ways to reach us just below."
-        ),
+        "keywords": ["talk to a human", "speak to a human", "real person", "human agent", "talk to the director", "speak to the director", "contact the director", "talk to someone", "speak to someone"],
+        "message": f"Of course — give me just a moment to connect you with {DIRECTOR_NAME}. You'll find the quickest ways to reach us just below.",
         "prefill": "Hi, I'd like to speak with someone from your team.",
     },
     "pricing": {
-        "keywords": [
-            "pricing", "price quote", "quote for", "how much would it cost",
-            "how much does it cost", "budget for", "cost estimate", "discount",
-        ],
-        "message": (
-            f"Since pricing depends on the scope of your project, let's get you "
-            f"a proper quote directly from {DIRECTOR_NAME} rather than a guess "
-            f"from me. Reach out using the options below and we'll get back to "
-            f"you quickly."
-        ),
+        "keywords": ["pricing", "price quote", "quote for", "how much would it cost", "how much does it cost", "budget for", "cost estimate", "discount"],
+        "message": f"Since pricing depends on the scope of your project, let's get you a proper quote directly from {DIRECTOR_NAME} rather than a guess from me. Reach out using the options below and we'll get back to you quickly.",
         "prefill": "Hi, I would like a pricing quote.",
     },
     "contract": {
-        "keywords": [
-            "invoice", "payment terms", "refund", "cancel my order",
-            "sign an nda", "sign a contract", "terms and conditions",
-        ],
-        "message": (
-            f"For contracts, invoices, and payment terms, {DIRECTOR_NAME} will "
-            f"want to go through the details with you personally, to make sure "
-            f"everything is accurate. Here are the quickest ways to connect."
-        ),
+        "keywords": ["invoice", "payment terms", "refund", "cancel my order", "sign an nda", "sign a contract", "terms and conditions"],
+        "message": f"For contracts, invoices, and payment terms, {DIRECTOR_NAME} will want to go through the details with you personally, to make sure everything is accurate. Here are the quickest ways to connect.",
         "prefill": "Hi, I need help with a contract or payment matter.",
     },
     "legal": {
-        "keywords": [
-            "legal", "lawsuit", "compliance issue", "data breach", "security incident",
-            "gdpr", "complaint", "dispute",
-        ],
-        "message": (
-            f"This is something {DIRECTOR_NAME} will want to hear about directly "
-            f"and as soon as possible. Please use the options below to reach us right away."
-        ),
+        "keywords": ["legal", "lawsuit", "compliance issue", "data breach", "security incident", "gdpr", "complaint", "dispute"],
+        "message": f"This is something {DIRECTOR_NAME} will want to hear about directly and as soon as possible. Please use the options below to reach us right away.",
         "prefill": "Hi, I need to raise an urgent matter.",
     },
     "partnership": {
-        "keywords": [
-            "negotiate", "negotiation", "investment proposal", "investment opportunity",
-            "partnership agreement", "acquisition", "merger", "funding", "invest in",
-            "investor", "collaborate", "collaboration", "business proposal",
-        ],
-        "message": (
-            f"We'd genuinely love to explore this with you. {DIRECTOR_NAME} "
-            f"handles all of our partnership and investment conversations "
-            f"personally, so let's get you connected using the options below."
-        ),
+        "keywords": ["negotiate", "negotiation", "investment proposal", "investment opportunity", "partnership agreement", "acquisition", "merger", "funding", "invest in", "investor", "collaborate", "collaboration", "business proposal"],
+        "message": f"We'd genuinely love to explore this with you. {DIRECTOR_NAME} handles all of our partnership and investment conversations personally, so let's get you connected using the options below.",
         "prefill": "Hi, I would like to discuss a partnership or business opportunity.",
     },
     "hr": {
-        "keywords": [
-            "salary", "compensation", "harassment", "workplace complaint",
-        ],
-        "message": (
-            f"This is something {DIRECTOR_NAME} should hear directly and "
-            f"personally. Please reach out using the options below whenever "
-            f"you're ready — we take matters like this seriously."
-        ),
+        "keywords": ["salary", "compensation", "harassment", "workplace complaint"],
+        "message": f"This is something {DIRECTOR_NAME} should hear directly and personally. Please reach out using the options below whenever you're ready — we take matters like this seriously.",
         "prefill": "",
     },
 }
 
-# The exact prefix we ask the model to output when IT decides
-# (based on the conversation) that a human should take over, followed
-# by the category name, e.g. "ESCALATE_TO_HUMAN:pricing"
 ESCALATION_MARKER_PREFIX = "ESCALATE_TO_HUMAN"
 
 def default_escalation_message() -> str:
-    return (
-        f"Let's get you connected directly to {DIRECTOR_NAME} for this one. "
-        f"You'll find the quickest ways to reach us just below."
-    )
-
+    return f"Let's get you connected directly to {DIRECTOR_NAME} for this one. You'll find the quickest ways to reach us just below."
 
 def detect_escalation_category_by_keyword(message: str) -> Optional[str]:
     lowered = message.lower()
@@ -237,15 +162,7 @@ def detect_escalation_category_by_keyword(message: str) -> Optional[str]:
             return category
     return None
 
-
 def build_human_handoff_payload(category: Optional[str]) -> dict:
-    """
-    The ONLY place that generates human-handoff responses.
-    Returns {"response": <spoken/displayed text>, "actions": [<buttons>]}.
-    The "response" text NEVER contains a raw URL — contact options are
-    always returned separately as structured "actions" for the frontend
-    to render as buttons.
-    """
     opener = pick_opener()
     if category and category in ESCALATION_CATEGORIES:
         data = ESCALATION_CATEGORIES[category]
@@ -254,12 +171,7 @@ def build_human_handoff_payload(category: Optional[str]) -> dict:
     else:
         body = default_escalation_message()
         prefill = ""
-
-    return {
-        "response": f"{opener} {body}",
-        "actions": build_contact_actions(prefill),
-    }
-
+    return {"response": f"{opener} {body}", "actions": build_contact_actions(prefill)}
 
 def extract_escalation_category_from_llm_output(raw_response: str) -> Optional[str]:
     match = re.search(r'ESCALATE_TO_HUMAN(?::(\w+))?', raw_response)
@@ -270,14 +182,12 @@ def extract_escalation_category_from_llm_output(raw_response: str) -> Optional[s
         return category
     return ""
 
-
 def crawl_entire_website(base_url: str, max_pages: int = 5) -> str:
     visited = set()
     to_visit = [base_url]
     parsed_base = urlparse(base_url)
     domain = parsed_base.netloc
     collected_text = []
-
     headers = {'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64)'}
 
     while to_visit and len(visited) < max_pages:
@@ -285,73 +195,49 @@ def crawl_entire_website(base_url: str, max_pages: int = 5) -> str:
         if current_url in visited:
             continue
         visited.add(current_url)
-
         try:
             response = requests.get(current_url, headers=headers, timeout=3)
             if response.status_code == 200:
                 soup = BeautifulSoup(response.text, 'html.parser')
-
                 for link in soup.find_all('a', href=True):
                     abs_url = urljoin(current_url, link['href'])
                     parsed_link = urlparse(abs_url)
                     if parsed_link.netloc == domain and abs_url not in visited and abs_url not in to_visit:
                         if not any(abs_url.endswith(ext) for ext in ['.pdf', '.jpg', '.png', '.zip', '.css', '.js']):
                             to_visit.append(abs_url)
-
                 for element in soup(["script", "style", "nav", "footer", "noscript", "iframe"]):
                     element.extract()
-
                 text_blocks = [tag.get_text(strip=True) for tag in soup.find_all(['h1', 'h2', 'h3', 'p', 'li', 'article', 'section']) if tag.get_text(strip=True)]
                 page_text = " ".join(" ".join(text_blocks).split())
                 if page_text:
                     collected_text.append(f"--- PAGE: {current_url} ---\n{page_text}")
         except Exception:
             continue
-
     full_corpus = "\n\n".join(collected_text)
     return full_corpus[:8000] if full_corpus else "Platform is live and operational."
 
-
 def clean_text_for_speech(text: str) -> str:
-    """
-    Strips markdown/formatting artifacts AND raw URLs so TTS never
-    reads out literal symbols like ** or # or bullet dashes, and
-    never reads a URL character-by-character (e.g. "percent two C").
-    """
     if not text:
         return ""
-
     cleaned = text
-
     cleaned = re.sub(r'\*\*(.*?)\*\*', r'\1', cleaned)
     cleaned = re.sub(r'__(.*?)__', r'\1', cleaned)
     cleaned = re.sub(r'\*(.*?)\*', r'\1', cleaned)
     cleaned = re.sub(r'(?<!\w)_(.*?)_(?!\w)', r'\1', cleaned)
-
     cleaned = re.sub(r'^\s{0,3}#{1,6}\s*', '', cleaned, flags=re.MULTILINE)
-
     cleaned = re.sub(r'```.*?```', '', cleaned, flags=re.DOTALL)
     cleaned = re.sub(r'`([^`]*)`', r'\1', cleaned)
-
     cleaned = re.sub(r'\[([^\]]+)\]\([^)]+\)', r'\1', cleaned)
-
-    # Strip any raw URL entirely — never read a link character-by-character
     cleaned = re.sub(r'https?://\S+', '', cleaned)
     cleaned = re.sub(r'\bwww\.\S+', '', cleaned)
-
     cleaned = re.sub(r'^\s*\d+[\.\)]\s*', '', cleaned, flags=re.MULTILINE)
-
     cleaned = re.sub(r'^\s*[-\*•]\s*', '', cleaned, flags=re.MULTILINE)
-
     cleaned = cleaned.replace('#', '').replace('*', '').replace('_', '')
-
     cleaned = re.sub(r'\n+', '. ', cleaned)
     cleaned = re.sub(r'\s{2,}', ' ', cleaned)
     cleaned = re.sub(r'\.{2,}', '.', cleaned)
     cleaned = re.sub(r'\s+([.,!?])', r'\1', cleaned)
-
     return cleaned.strip()
-
 
 class ChatRequest(BaseModel):
     message: str
@@ -365,17 +251,20 @@ class ContentUpdate(BaseModel):
     content_value: str
     admin_secret: str
 
+# =============================================================
+# EXISTING CONTENT ENDPOINTS (Updated to use PostgreSQL)
+# =============================================================
 @app.get("/content/{content_key:path}")
 async def get_universal_content(content_key: str):
     try:
         conn = get_db_connection()
         cursor = conn.cursor()
-        cursor.execute("SELECT content_value FROM site_content WHERE content_key = ?", (content_key,))
+        cursor.execute("SELECT content_value FROM site_content WHERE content_key = %s", (content_key,))
         result = cursor.fetchone()
         cursor.close()
         conn.close()
         if result:
-            return {"content": result["content_value"]}
+            return {"content": result[0]}
         return {"content": None}
     except Exception as e:
         raise HTTPException(status_code=500, detail=str(e))
@@ -388,7 +277,7 @@ async def update_universal_content(req: ContentUpdate):
         cursor.execute(
             """
             INSERT INTO site_content (content_key, content_value, updated_at)
-            VALUES (?, ?, CURRENT_TIMESTAMP)
+            VALUES (%s, %s, CURRENT_TIMESTAMP)
             ON CONFLICT(content_key) 
             DO UPDATE SET content_value = excluded.content_value, updated_at = CURRENT_TIMESTAMP
             """,
@@ -401,22 +290,93 @@ async def update_universal_content(req: ContentUpdate):
     except Exception as e:
         raise HTTPException(status_code=500, detail=str(e))
 
+# =============================================================
+# NEW: ACTIVITIES ENDPOINTS (File Uploads + Database)
+# =============================================================
+@app.post("/api/activities")
+async def create_activity(
+    title: str = Form(...),
+    description: str = Form(...),
+    image: UploadFile = File(None),
+    video: UploadFile = File(None)
+):
+    image_url = None
+    video_url = None
+
+    # 1. Handle Image Upload
+    if image and image.filename:
+        ext = image.filename.split(".")[-1]
+        unique_filename = f"{uuid.uuid4()}.{ext}"
+        file_path = os.path.join(UPLOAD_DIR, unique_filename)
+        with open(file_path, "wb") as buffer:
+            shutil.copyfileobj(image.file, buffer)
+        image_url = f"/uploads/{unique_filename}"
+
+    # 2. Handle Video Upload
+    if video and video.filename:
+        ext = video.filename.split(".")[-1]
+        unique_filename = f"{uuid.uuid4()}.{ext}"
+        file_path = os.path.join(UPLOAD_DIR, unique_filename)
+        with open(file_path, "wb") as buffer:
+            shutil.copyfileobj(video.file, buffer)
+        video_url = f"/uploads/{unique_filename}"
+
+    # 3. Save to PostgreSQL Database
+    try:
+        conn = get_db_connection()
+        cursor = conn.cursor()
+        cursor.execute("""
+            INSERT INTO activities (title, description, image_url, video_url)
+            VALUES (%s, %s, %s, %s)
+            RETURNING id;
+        """, (title, description, image_url, video_url))
+        activity_id = cursor.fetchone()[0]
+        conn.commit()
+        cursor.close()
+        conn.close()
+        return {"message": "Activity created successfully!", "id": activity_id}
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=f"Database error: {str(e)}")
+
+@app.get("/api/activities")
+async def get_activities():
+    try:
+        conn = get_db_connection()
+        cursor = conn.cursor()
+        cursor.execute("""
+            SELECT id, title, description, image_url, video_url, created_at 
+            FROM activities 
+            ORDER BY created_at DESC;
+        """)
+        rows = cursor.fetchall()
+        cursor.close()
+        conn.close()
+        
+        activities = [
+            {
+                "id": row[0],
+                "title": row[1],
+                "description": row[2],
+                "image_url": row[3],
+                "video_url": row[4],
+                "created_at": row[5].isoformat() if row[5] else None
+            }
+            for row in rows
+        ]
+        return {"activities": activities}
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=f"Database error: {str(e)}")
+
+# =============================================================
+# EXISTING AI CHAT & TTS ENDPOINTS (100% Unchanged Logic)
+# =============================================================
 @app.post("/chat")
 async def chat(req: ChatRequest):
     selected_project = PROJECT_REGISTRY.get(req.project_key.lower(), PROJECT_REGISTRY["akademia"])
-
-    # -------------------------------------------------------------
-    # STEP 1: Fast keyword pre-check — catches obvious cases WITHOUT
-    # even calling the LLM, and already knows the exact category.
-    # -------------------------------------------------------------
     keyword_category = detect_escalation_category_by_keyword(req.message)
     if keyword_category:
         return build_human_handoff_payload(keyword_category)
 
-    # -------------------------------------------------------------
-    # STEP 2: Otherwise ask the LLM, instructing it to output
-    # "ESCALATE_TO_HUMAN:<category>" when a human should take over.
-    # -------------------------------------------------------------
     live_multi_page_content = crawl_entire_website(selected_project["url"], max_pages=6)
     directory_summary = "\n".join([f"- {p['name']} ({p['url']}): {p['description']}" for p in PROJECT_REGISTRY.values()])
     category_names = ", ".join(ESCALATION_CATEGORIES.keys())
@@ -458,10 +418,6 @@ async def chat(req: ChatRequest):
     )
 
     raw_response = completion.choices[0].message.content
-
-    # -------------------------------------------------------------
-    # STEP 3: Catch the marker even if the model wraps it in extra text.
-    # -------------------------------------------------------------
     llm_category = extract_escalation_category_from_llm_output(raw_response)
     if llm_category is not None:
         return build_human_handoff_payload(llm_category or None)
@@ -472,7 +428,6 @@ async def chat(req: ChatRequest):
 async def text_to_speech(req: TTSRequest):
     try:
         speakable_text = clean_text_for_speech(req.text)
-
         url = "https://api.deepgram.com/v1/speak?model=aura-asteria-en"
         headers = {
             "Authorization": f"Token {os.getenv('DEEPGRAM_API_KEY')}",
