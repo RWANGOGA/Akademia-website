@@ -4,9 +4,8 @@ import { useState } from "react";
 import Header from "@/components/Header";
 import { Phone, Mail, MapPin } from "lucide-react";
 
-const DIRECTOR_EMAIL = "gen@akademia.co.jp";
-const SECOND_EMAIL = "heike@akademia.co.jp";
-const RECIPIENT_EMAILS = `${DIRECTOR_EMAIL},${SECOND_EMAIL}`;
+const DIRECTOR_EMAIL = "ai-pod@akademia.sakura.ne.jp";
+const RECIPIENT_EMAILS = DIRECTOR_EMAIL;
 const DIRECTOR_WHATSAPP = "819057563969"; // international format, no symbols
 const DIRECTOR_PHONE_DISPLAY = "090-5756-3969";
 
@@ -336,7 +335,7 @@ export default function ContactPage() {
                   {OFFICE_ADDRESS_LINES.map((line) => (
                     <p key={line}>{line}</p>
                   ))}
-                  
+
                   {/* FIXED: Added the missing <a tag here */}
                   <a
                     href={OFFICE_MAPS_LINK}
