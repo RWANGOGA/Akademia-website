@@ -43,19 +43,14 @@ export default function ProductsPage() {
     },
   ];
 
-  // FIXED: Added "as const" for strict TypeScript compatibility
-  const heroContainer = {
-    hidden: {},
-    visible: { transition: { staggerChildren: 0.12, delayChildren: 0.1 } },
-  } as const;
-
-  // FIXED: Added "as const" for strict TypeScript compatibility
-  const heroWord = {
-    hidden: { opacity: 0, y: 30 },
-    visible: { opacity: 1, y: 0, transition: { duration: 0.6, ease: "easeOut" as const } },
-  } as const;
-
-  const heroWords = ["What", "We", "Build"];
+  const heroWords = [
+    { text: "WHAT", color: "text-white" },
+    { text: "WE", color: "text-white" },
+    { text: "BUILD", color: "text-yellow-400" },
+    { text: "→", color: "text-yellow-400/60" },
+    { text: "OUR", color: "text-white" },
+    { text: "PRODUCTS", color: "text-yellow-400" },
+  ];
 
   return (
     <div className="min-h-screen bg-black text-white">
@@ -80,29 +75,137 @@ export default function ProductsPage() {
         </nav>
       </header>
 
-      {/* HERO */}
-      <section className="relative flex min-h-[55vh] w-full items-center justify-center overflow-hidden pt-24 text-center">
-        <div className="absolute inset-0 bg-black" />
-        <div className="relative z-10 mx-auto w-full max-w-5xl px-6">
-          <motion.h1
-            variants={heroContainer}
-            initial="hidden"
-            animate="visible"
-            className="mb-4 sm:mb-6 flex flex-wrap justify-center gap-x-3 sm:gap-x-6 text-5xl sm:text-7xl md:text-9xl font-black uppercase leading-none tracking-tight"
+      {/* HERO — Full screen background image, very bright and visible */}
+      <section className="relative flex min-h-screen w-full items-center justify-center overflow-hidden pt-24">
+        {/* Background image - very bright and visible */}
+        <div
+          className="absolute inset-0 bg-center bg-cover bg-no-repeat"
+          style={{
+            backgroundImage: "url('/images/image copy 23.png')",
+          }}
+        />
+        
+        {/* Very light overlay - image stays very bright and visible */}
+        <div className="absolute inset-0 bg-black/15" />
+
+        <div className="relative z-10 mx-auto w-full max-w-6xl px-6">
+          {/* Organized in 3 lines with continuous fade/pop animation */}
+          <div className="mb-8 flex flex-col items-center justify-center space-y-2 sm:space-y-4">
+            {/* Line 1: WHAT WE */}
+            <motion.h1
+              initial={{ opacity: 0, y: 40 }}
+              animate={{ opacity: 1, y: 0 }}
+              transition={{ 
+                duration: 0.8, 
+                delay: 0.2,
+                repeat: Infinity,
+                repeatType: "reverse",
+                repeatDelay: 3
+              }}
+              className="flex flex-wrap justify-center gap-x-4 sm:gap-x-8 text-5xl sm:text-7xl md:text-8xl lg:text-9xl font-black uppercase tracking-tight"
+            >
+              {heroWords.slice(0, 2).map((word, i) => (
+                <motion.span
+                  key={i}
+                  initial={{ opacity: 0, scale: 0.5 }}
+                  animate={{ opacity: 1, scale: 1 }}
+                  transition={{ 
+                    duration: 0.6, 
+                    delay: 0.4 + i * 0.1,
+                    repeat: Infinity,
+                    repeatType: "reverse",
+                    repeatDelay: 3
+                  }}
+                  className={`${word.color} drop-shadow-2xl`}
+                >
+                  {word.text}
+                </motion.span>
+              ))}
+            </motion.h1>
+
+            {/* Line 2: BUILD → OUR */}
+            <motion.h1
+              initial={{ opacity: 0, y: 40 }}
+              animate={{ opacity: 1, y: 0 }}
+              transition={{ 
+                duration: 0.8, 
+                delay: 0.6,
+                repeat: Infinity,
+                repeatType: "reverse",
+                repeatDelay: 3
+              }}
+              className="flex flex-wrap justify-center gap-x-4 sm:gap-x-8 text-5xl sm:text-7xl md:text-8xl lg:text-9xl font-black uppercase tracking-tight"
+            >
+              {heroWords.slice(2, 5).map((word, i) => (
+                <motion.span
+                  key={i}
+                  initial={{ opacity: 0, scale: 0.5 }}
+                  animate={{ opacity: 1, scale: 1 }}
+                  transition={{ 
+                    duration: 0.6, 
+                    delay: 0.8 + i * 0.15,
+                    repeat: Infinity,
+                    repeatType: "reverse",
+                    repeatDelay: 3
+                  }}
+                  className={`${word.color} drop-shadow-2xl`}
+                >
+                  {word.text}
+                </motion.span>
+              ))}
+            </motion.h1>
+
+            {/* Line 3: PRODUCTS */}
+            <motion.h1
+              initial={{ opacity: 0, y: 40 }}
+              animate={{ opacity: 1, y: 0 }}
+              transition={{ 
+                duration: 0.8, 
+                delay: 1.0,
+                repeat: Infinity,
+                repeatType: "reverse",
+                repeatDelay: 3
+              }}
+              className="flex flex-wrap justify-center gap-x-4 sm:gap-x-8 text-5xl sm:text-7xl md:text-8xl lg:text-9xl font-black uppercase tracking-tight"
+            >
+              {heroWords.slice(5, 6).map((word, i) => (
+                <motion.span
+                  key={i}
+                  initial={{ opacity: 0, scale: 0.5 }}
+                  animate={{ opacity: 1, scale: 1 }}
+                  transition={{ 
+                    duration: 0.6, 
+                    delay: 1.2 + i * 0.1,
+                    repeat: Infinity,
+                    repeatType: "reverse",
+                    repeatDelay: 3
+                  }}
+                  className={`${word.color} drop-shadow-2xl`}
+                >
+                  {word.text}
+                </motion.span>
+              ))}
+            </motion.h1>
+          </div>
+
+          {/* Subtitle with continuous fade animation */}
+          <motion.p
+            initial={{ opacity: 0, y: 20 }}
+            animate={{ 
+              opacity: 1, 
+              y: 0,
+            }}
+            transition={{ 
+              duration: 0.8, 
+              delay: 1.6,
+              repeat: Infinity,
+              repeatType: "reverse",
+              repeatDelay: 3
+            }}
+            className="mx-auto max-w-xl text-center text-base sm:text-lg font-medium text-white/90 drop-shadow-lg"
           >
-            {heroWords.map((word, i) => (
-              <motion.span
-                key={i}
-                variants={heroWord}
-                className={`inline-block ${word === "Build" ? "text-yellow-400" : "text-white"}`}
-              >
-                {word}
-              </motion.span>
-            ))}
-          </motion.h1>
-          <p className="mx-auto max-w-xl text-base sm:text-lg font-medium text-white/70">
             A closer look at each product — what it does, and where to try it.
-          </p>
+          </motion.p>
         </div>
       </section>
 
