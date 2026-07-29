@@ -3,11 +3,13 @@ import re
 import random
 import uuid
 import shutil
-import psycopg2  # Replaced sqlite3 with psycopg2 for Docker PostgreSQL
+import jwt
+from datetime import datetime, timedelta
+import psycopg2
 from fastapi import FastAPI, HTTPException, UploadFile, File, Form
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.responses import Response
-from fastapi.staticfiles import StaticFiles  # Added to serve uploaded images/videos
+from fastapi.staticfiles import StaticFiles
 from pydantic import BaseModel
 from typing import Optional, List
 from groq import Groq
@@ -16,13 +18,15 @@ import requests
 from bs4 import BeautifulSoup
 from urllib.parse import urljoin, urlparse, quote
 
+# 1. Load environment variables FIRST
 load_dotenv()
 
+# 2. Initialize FastAPI app
 app = FastAPI(title="Akademia Multi-Page Deep Crawler & Neural Core", version="7.0")
 
 app.add_middleware(
     CORSMiddleware,
-    allow_origins=["http://localhost:3000", "http://localhost", "https://ai-pod.net"], # Added production domain
+    allow_origins=["http://localhost:3000", "http://localhost", "https://ai-pod.net"],
     allow_credentials=True,
     allow_methods=["*"],
     allow_headers=["*"],
@@ -31,21 +35,42 @@ app.add_middleware(
 groq_client = Groq(api_key=os.getenv("GROQ_API_KEY"))
 
 # =============================================================
-# DATABASE CONNECTION (Updated to PostgreSQL for Docker)
+# JWT AUTHENTICATION CONFIG
 # =============================================================
+SECRET_KEY = os.getenv("JWT_SECRET_KEY", "your-super-secret-key-change-this-in-production")
+ALGORITHM = "HS256"
+
+@app.post("/api/auth/login")
+async def admin_login(username: str = Form(...), password: str = Form(...)):
+    admin_user = os.getenv("ADMIN_USER", "admin")
+    admin_pass = os.getenv("ADMIN_PASS", "Akademia2024!")
+    
+    if username == admin_user and password == admin_pass:
+        token = jwt.encode(
+            {
+                "sub": username,
+                "exp": datetime.utcnow() + timedelta(hours=24)
+            },
+            SECRET_KEY,
+            algorithm=ALGORITHM
+        )
+        return {"access_token": token, "token_type": "bearer"}
+    
+    raise HTTPException(status_code=401, detail="Invalid username or password")
+
 # =============================================================
-# DATABASE CONNECTION (Updated to PostgreSQL)
+# DATABASE CONNECTION
 # =============================================================
 def get_db_connection():
     return psycopg2.connect(
         dbname="akademia_cms",
         user="akademia_admin",
         password="akademia_123",
-        host="db"  # <--- CHANGED TO "localhost" FOR LOCAL MAC TESTING
+        host="db"  # "db" is the correct service name when running inside Docker
     )
 
 # =============================================================
-# STATIC FILES (To serve uploaded images/videos to the frontend)
+# STATIC FILES (To serve uploaded images/videos)
 # =============================================================
 UPLOAD_DIR = "uploads"
 os.makedirs(UPLOAD_DIR, exist_ok=True)
@@ -255,7 +280,7 @@ class ContentUpdate(BaseModel):
     admin_secret: str
 
 # =============================================================
-# EXISTING CONTENT ENDPOINTS (Updated to use PostgreSQL)
+# EXISTING CONTENT ENDPOINTS
 # =============================================================
 @app.get("/content/{content_key:path}")
 async def get_universal_content(content_key: str):
@@ -294,7 +319,7 @@ async def update_universal_content(req: ContentUpdate):
         raise HTTPException(status_code=500, detail=str(e))
 
 # =============================================================
-# NEW: ACTIVITIES ENDPOINTS (File Uploads + Database)
+# ACTIVITIES ENDPOINTS (File Uploads + Database)
 # =============================================================
 @app.post("/api/activities")
 async def create_activity(
@@ -306,7 +331,6 @@ async def create_activity(
     image_url = None
     video_url = None
 
-    # 1. Handle Image Upload
     if image and image.filename:
         ext = image.filename.split(".")[-1]
         unique_filename = f"{uuid.uuid4()}.{ext}"
@@ -315,7 +339,6 @@ async def create_activity(
             shutil.copyfileobj(image.file, buffer)
         image_url = f"/uploads/{unique_filename}"
 
-    # 2. Handle Video Upload
     if video and video.filename:
         ext = video.filename.split(".")[-1]
         unique_filename = f"{uuid.uuid4()}.{ext}"
@@ -324,7 +347,6 @@ async def create_activity(
             shutil.copyfileobj(video.file, buffer)
         video_url = f"/uploads/{unique_filename}"
 
-    # 3. Save to PostgreSQL Database
     try:
         conn = get_db_connection()
         cursor = conn.cursor()
@@ -370,8 +392,38 @@ async def get_activities():
     except Exception as e:
         raise HTTPException(status_code=500, detail=f"Database error: {str(e)}")
 
+@app.get("/api/activities/{activity_id}")
+async def get_activity(activity_id: int):
+    try:
+        conn = get_db_connection()
+        cursor = conn.cursor()
+        cursor.execute("""
+            SELECT id, title, description, image_url, video_url, created_at
+            FROM activities
+            WHERE id = %s;
+        """, (activity_id,))
+        row = cursor.fetchone()
+        cursor.close()
+        conn.close()
+
+        if not row:
+            raise HTTPException(status_code=404, detail="Activity not found")
+
+        return {
+            "id": row[0],
+            "title": row[1],
+            "description": row[2],
+            "image_url": row[3],
+            "video_url": row[4],
+            "created_at": row[5].isoformat() if row[5] else None,
+        }
+    except HTTPException:
+        raise
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=f"Database error: {str(e)}")
+
 # =============================================================
-# EXISTING AI CHAT & TTS ENDPOINTS (100% Unchanged Logic)
+# EXISTING AI CHAT & TTS ENDPOINTS
 # =============================================================
 @app.post("/chat")
 async def chat(req: ChatRequest):
@@ -442,33 +494,3 @@ async def text_to_speech(req: TTSRequest):
         raise HTTPException(status_code=response.status_code, detail=response.text)
     except Exception as e:
         raise HTTPException(status_code=500, detail=str(e))
-    
-@app.get("/api/activities/{activity_id}")
-async def get_activity(activity_id: int):
-    try:
-        conn = get_db_connection()
-        cursor = conn.cursor()
-        cursor.execute("""
-            SELECT id, title, description, image_url, video_url, created_at
-            FROM activities
-            WHERE id = %s;
-        """, (activity_id,))
-        row = cursor.fetchone()
-        cursor.close()
-        conn.close()
-
-        if not row:
-            raise HTTPException(status_code=404, detail="Activity not found")
-
-        return {
-            "id": row[0],
-            "title": row[1],
-            "description": row[2],
-            "image_url": row[3],
-            "video_url": row[4],
-            "created_at": row[5].isoformat() if row[5] else None,
-        }
-    except HTTPException:
-        raise
-    except Exception as e:
-        raise HTTPException(status_code=500, detail=f"Database error: {str(e)}")    
