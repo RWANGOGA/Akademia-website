@@ -99,14 +99,6 @@ export default function Header() {
           </div>
         )}
 
-        {/* Dashboard button (desktop only) */}
-        <Link
-          href="/dashboard"
-          className="hidden lg:inline-block bg-yellow-400 text-slate-900 px-6 py-2 rounded-sm font-bold text-sm hover:bg-yellow-500 transition-colors"
-        >
-          Dashboard
-        </Link>
-
         {/* Mobile hamburger button */}
         <button
           onClick={() => setMobileOpen((prev) => !prev)}
@@ -196,14 +188,6 @@ export default function Header() {
               className="block py-3 text-white font-medium text-base border-b border-slate-800/60"
             >
               Contact
-            </Link>
-
-            <Link
-              href="/dashboard"
-              onClick={closeMobileMenu}
-              className="block mt-4 bg-yellow-400 text-slate-900 text-center px-6 py-3 rounded-sm font-bold text-sm hover:bg-yellow-500 transition-colors"
-            >
-              Dashboard
             </Link>
           </div>
         </div>

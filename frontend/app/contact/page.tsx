@@ -29,6 +29,11 @@ const OFFICE_MAPS_LINK = "https://maps.google.com/?cid=320021674925450370";
 const OFFICE_PHONE_DISPLAY = "090-5756-3969";
 const OFFICE_EMAIL_DISPLAY = "ai-pod@akademia.sakura.ne.jp";
 
+// Shared field styling — clear text color, white background, and a
+// visibly different focus state so users can always see what they're typing.
+const inputClass =
+  "w-full border-2 border-slate-300 rounded-md px-4 py-3 text-slate-900 bg-white placeholder:text-slate-400 focus:outline-none focus:border-yellow-500 focus:bg-yellow-50 transition-colors";
+
 type FormState = {
   inquiryType: string;
   firstName: string;
@@ -160,7 +165,7 @@ export default function ContactPage() {
             <select
               value={form.inquiryType}
               onChange={(e) => update("inquiryType", e.target.value)}
-              className="w-full border border-slate-300 rounded-md px-4 py-3 text-slate-700 focus:outline-none focus:ring-2 focus:ring-yellow-500"
+              className={inputClass}
             >
               <option value="">Select</option>
               {INQUIRY_TYPES.map((type) => (
@@ -180,7 +185,7 @@ export default function ContactPage() {
                 type="text"
                 value={form.firstName}
                 onChange={(e) => update("firstName", e.target.value)}
-                className="w-full border border-slate-300 rounded-md px-4 py-3 focus:outline-none focus:ring-2 focus:ring-yellow-500"
+                className={inputClass}
               />
             </div>
             <div>
@@ -189,7 +194,7 @@ export default function ContactPage() {
                 type="tel"
                 value={form.phone}
                 onChange={(e) => update("phone", e.target.value)}
-                className="w-full border border-slate-300 rounded-md px-4 py-3 focus:outline-none focus:ring-2 focus:ring-yellow-500"
+                className={inputClass}
               />
             </div>
           </div>
@@ -203,7 +208,7 @@ export default function ContactPage() {
                 type="text"
                 value={form.lastName}
                 onChange={(e) => update("lastName", e.target.value)}
-                className="w-full border border-slate-300 rounded-md px-4 py-3 focus:outline-none focus:ring-2 focus:ring-yellow-500"
+                className={inputClass}
               />
             </div>
             <div>
@@ -212,7 +217,7 @@ export default function ContactPage() {
                 type="text"
                 value={form.companyName}
                 onChange={(e) => update("companyName", e.target.value)}
-                className="w-full border border-slate-300 rounded-md px-4 py-3 focus:outline-none focus:ring-2 focus:ring-yellow-500"
+                className={inputClass}
               />
             </div>
           </div>
@@ -226,7 +231,7 @@ export default function ContactPage() {
                 type="email"
                 value={form.email}
                 onChange={(e) => update("email", e.target.value)}
-                className="w-full border border-slate-300 rounded-md px-4 py-3 focus:outline-none focus:ring-2 focus:ring-yellow-500"
+                className={inputClass}
               />
             </div>
             <div>
@@ -235,7 +240,7 @@ export default function ContactPage() {
                 type="text"
                 value={form.website}
                 onChange={(e) => update("website", e.target.value)}
-                className="w-full border border-slate-300 rounded-md px-4 py-3 focus:outline-none focus:ring-2 focus:ring-yellow-500"
+                className={inputClass}
               />
             </div>
           </div>
@@ -248,7 +253,7 @@ export default function ContactPage() {
               value={form.message}
               onChange={(e) => update("message", e.target.value)}
               rows={7}
-              className="w-full border border-slate-300 rounded-md px-4 py-3 focus:outline-none focus:ring-2 focus:ring-yellow-500 resize-none"
+              className={`${inputClass} resize-none`}
             />
           </div>
 
