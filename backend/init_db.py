@@ -1,10 +1,11 @@
 import psycopg2
+import os
 
 # These match your docker-compose.yml exactly
 DB_NAME = "akademia_cms"
 DB_USER = "akademia_admin"
 DB_PASS = "akademia_123"
-DB_HOST = "localhost" # Use 'localhost' when running script locally, 'db' when running inside Docker
+DB_HOST = os.getenv("DB_HOST", "localhost") # Use 'localhost' when running script locally, 'db' when running inside Docker
 
 def init_db():
     try:

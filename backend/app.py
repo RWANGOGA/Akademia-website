@@ -33,12 +33,15 @@ groq_client = Groq(api_key=os.getenv("GROQ_API_KEY"))
 # =============================================================
 # DATABASE CONNECTION (Updated to PostgreSQL for Docker)
 # =============================================================
+# =============================================================
+# DATABASE CONNECTION (Updated to PostgreSQL)
+# =============================================================
 def get_db_connection():
     return psycopg2.connect(
         dbname="akademia_cms",
         user="akademia_admin",
         password="akademia_123",
-        host="db"  # "db" is the service name in docker-compose.yml
+        host="db"  # <--- CHANGED TO "localhost" FOR LOCAL MAC TESTING
     )
 
 # =============================================================
@@ -439,3 +442,33 @@ async def text_to_speech(req: TTSRequest):
         raise HTTPException(status_code=response.status_code, detail=response.text)
     except Exception as e:
         raise HTTPException(status_code=500, detail=str(e))
+    
+@app.get("/api/activities/{activity_id}")
+async def get_activity(activity_id: int):
+    try:
+        conn = get_db_connection()
+        cursor = conn.cursor()
+        cursor.execute("""
+            SELECT id, title, description, image_url, video_url, created_at
+            FROM activities
+            WHERE id = %s;
+        """, (activity_id,))
+        row = cursor.fetchone()
+        cursor.close()
+        conn.close()
+
+        if not row:
+            raise HTTPException(status_code=404, detail="Activity not found")
+
+        return {
+            "id": row[0],
+            "title": row[1],
+            "description": row[2],
+            "image_url": row[3],
+            "video_url": row[4],
+            "created_at": row[5].isoformat() if row[5] else None,
+        }
+    except HTTPException:
+        raise
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=f"Database error: {str(e)}")    
