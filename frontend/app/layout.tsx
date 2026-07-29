@@ -15,7 +15,6 @@ const geistMono = Geist_Mono({
   subsets: ["latin"],
 });
 
-// FIXED: Changed title and description to DYNA WISDOM
 export const metadata: Metadata = {
   title: "DYNA WISDOM",
   description: "Welcome to DYNA WISDOM",
@@ -69,6 +68,15 @@ export default function RootLayout({
                 >
                   Akademia Japan
                 </a>
+
+                {/* 👇 HIDDEN ADMIN LINK: Very subtle, low contrast, small text 👇 */}
+                <Link
+                  href="/admin"
+                  className="text-slate-300 hover:text-yellow-500 font-medium text-[10px] sm:text-xs transition-colors duration-300 tracking-wider uppercase"
+                  title="Internal Access"
+                >
+                  Admin
+                </Link>
               </div>
             </div>
           </div>
