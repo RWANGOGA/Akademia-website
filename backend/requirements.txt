@@ -16,3 +16,4 @@ watchfiles
 websockets
 python-multipart
 psycopg2-binary
+PyJWT

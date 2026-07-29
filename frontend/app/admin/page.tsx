@@ -1,10 +1,12 @@
 "use client";
 
 import { useState } from "react";
+import { useRouter } from "next/navigation";
 import Link from "next/link";
-import { Upload, FileText, Image as ImageIcon, Video, CheckCircle, AlertCircle } from "lucide-react";
+import { Upload, FileText, Image as ImageIcon, Video, CheckCircle, AlertCircle, LogOut } from "lucide-react";
 
 export default function AdminPage() {
+  const router = useRouter();
   const [title, setTitle] = useState("");
   const [description, setDescription] = useState("");
   const [image, setImage] = useState<File | null>(null);
@@ -12,6 +14,14 @@ export default function AdminPage() {
   
   const [isLoading, setIsLoading] = useState(false);
   const [status, setStatus] = useState<{ type: "success" | "error"; message: string } | null>(null);
+
+  // Logout function
+  const handleLogout = () => {
+    // Clear the admin token cookie
+    document.cookie = "admin_token=; path=/; expires=Thu, 01 Jan 1970 00:00:00 GMT";
+    // Redirect to login page
+    router.push("/admin/login");
+  };
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -26,7 +36,7 @@ export default function AdminPage() {
       if (image) formData.append("image", image);
       if (video) formData.append("video", video);
 
-      // FIXED: Use relative path so Nginx can route it to the backend in Docker
+      // Use relative path so Nginx can route it to the backend in Docker
       const response = await fetch("/api/activities", {
         method: "POST",
         body: formData,
@@ -62,12 +72,23 @@ export default function AdminPage() {
           <h1 className="text-xl sm:text-2xl font-bold tracking-tight text-yellow-400">
             DYNA WISDOM <span className="text-white font-normal">| Admin Dashboard</span>
           </h1>
-          <Link 
-            href="/" 
-            className="text-sm text-slate-300 hover:text-white transition-colors flex items-center gap-2"
-          >
-            ← Back to Website
-          </Link>
+          
+          {/* Header Actions */}
+          <div className="flex items-center gap-4 sm:gap-6">
+            <Link 
+              href="/" 
+              className="text-sm text-slate-300 hover:text-white transition-colors flex items-center gap-2"
+            >
+              ← Back to Website
+            </Link>
+            <button 
+              onClick={handleLogout} 
+              className="text-sm text-red-400 hover:text-red-300 transition-colors flex items-center gap-2 font-medium"
+            >
+              <LogOut className="w-4 h-4" />
+              Logout
+            </button>
+          </div>
         </div>
       </header>
 
@@ -103,7 +124,7 @@ export default function AdminPage() {
                 value={title}
                 onChange={(e) => setTitle(e.target.value)}
                 placeholder="e.g., New AI Dojo Partnership Announced"
-                className="w-full border border-slate-300 rounded-lg px-4 py-3 text-slate-900 focus:outline-none focus:ring-2 focus:ring-yellow-400 focus:border-transparent transition-all"
+                className="w-full bg-slate-50 border border-slate-300 rounded-lg px-4 py-3 text-slate-900 focus:outline-none focus:ring-2 focus:ring-yellow-400 focus:bg-white transition-all"
               />
             </div>
 
@@ -118,7 +139,7 @@ export default function AdminPage() {
                 value={description}
                 onChange={(e) => setDescription(e.target.value)}
                 placeholder="Write the details of the activity here..."
-                className="w-full border border-slate-300 rounded-lg px-4 py-3 text-slate-900 focus:outline-none focus:ring-2 focus:ring-yellow-400 focus:border-transparent transition-all resize-none"
+                className="w-full bg-slate-50 border border-slate-300 rounded-lg px-4 py-3 text-slate-900 focus:outline-none focus:ring-2 focus:ring-yellow-400 focus:bg-white transition-all resize-none"
               />
             </div>
 
