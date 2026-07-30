@@ -42,11 +42,47 @@ export default function ActivitiesPage() {
 
   return (
     <div className="min-h-screen bg-white">
-      <main className="max-w-5xl mx-auto px-4 sm:px-6 py-12 sm:py-16">
-        <h1 className="text-3xl sm:text-4xl font-black text-slate-950 mb-10 sm:mb-12">
-          Latest News
-        </h1>
+      {/* HERO SECTION */}
+      <section className="relative w-full h-[50vh] sm:h-[60vh] md:h-[70vh] overflow-hidden">
+        <img
+          src="/images/image copy 24.png"
+          alt="Dyna Wisdom News Updates"
+          className="absolute inset-0 w-full h-full object-cover object-top"
+        />
+        <div className="absolute inset-0 bg-slate-900/55"></div>
 
+        <div className="relative z-10 h-full flex items-center px-6 md:px-16">
+          <div className="max-w-7xl mx-auto w-full flex justify-end">
+            <div className="text-right">
+              <h1 className="text-3xl sm:text-4xl md:text-6xl font-black leading-tight text-white">
+                THE
+              </h1>
+              <h1 className="text-3xl sm:text-4xl md:text-6xl font-black leading-tight text-yellow-400 ml-4 sm:ml-10 md:ml-16">
+                DYNA WISDOM
+              </h1>
+              <h1 className="text-3xl sm:text-4xl md:text-6xl font-black leading-tight text-yellow-400 ml-2 sm:ml-6 md:ml-8">
+                NEWS UPDATES
+              </h1>
+            </div>
+          </div>
+        </div>
+      </section>
+
+      {/* HERO SUB-STRIP */}
+      <section className="bg-white border-b border-slate-100">
+        <div className="max-w-7xl mx-auto px-6 md:px-16 py-6">
+          <h2 className="text-blue-700 font-extrabold text-lg sm:text-xl mb-3">
+            News Updates
+          </h2>
+          <div className="flex gap-2 sm:gap-3">
+            <div className="h-[3px] w-1/3 bg-blue-700"></div>
+            <div className="h-[3px] w-1/3 bg-yellow-400"></div>
+            <div className="h-[3px] w-1/3 bg-red-600"></div>
+          </div>
+        </div>
+      </section>
+
+      <main className="max-w-5xl mx-auto px-4 sm:px-6 py-12 sm:py-16">
         {isLoading && (
           <div className="flex flex-col items-center justify-center py-20">
             <div className="w-10 h-10 border-4 border-yellow-400 border-t-transparent rounded-full animate-spin mb-4"></div>
