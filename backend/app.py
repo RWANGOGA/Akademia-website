@@ -4,6 +4,7 @@ import random
 import uuid
 import shutil
 import jwt
+import resend  # <-- ADDED for email sending
 from datetime import datetime, timedelta
 import psycopg2
 from fastapi import FastAPI, HTTPException, UploadFile, File, Form
@@ -267,6 +268,9 @@ def clean_text_for_speech(text: str) -> str:
     cleaned = re.sub(r'\s+([.,!?])', r'\1', cleaned)
     return cleaned.strip()
 
+# =============================================================
+# PYDANTIC MODELS
+# =============================================================
 class ChatRequest(BaseModel):
     message: str
     project_key: str = "akademia"
@@ -278,6 +282,17 @@ class ContentUpdate(BaseModel):
     content_key: str
     content_value: str
     admin_secret: str
+
+class ContactRequest(BaseModel):  # <-- ADDED for Contact Form
+    inquiryType: str
+    firstName: str
+    lastName: str
+    email: str
+    phone: Optional[str] = None
+    companyName: Optional[str] = None
+    website: Optional[str] = None
+    message: str
+    optIn: bool = False
 
 # =============================================================
 # EXISTING CONTENT ENDPOINTS
@@ -319,42 +334,44 @@ async def update_universal_content(req: ContentUpdate):
         raise HTTPException(status_code=500, detail=str(e))
 
 # =============================================================
-# ACTIVITIES ENDPOINTS (File Uploads + Database)
+# ACTIVITIES ENDPOINTS (Multiple File Uploads + Database Arrays)
 # =============================================================
 @app.post("/api/activities")
 async def create_activity(
     title: str = Form(...),
     description: str = Form(...),
-    image: UploadFile = File(None),
-    video: UploadFile = File(None)
+    images: List[UploadFile] = File(default=[]),
+    videos: List[UploadFile] = File(default=[])
 ):
-    image_url = None
-    video_url = None
+    image_urls = []
+    video_urls = []
 
-    if image and image.filename:
-        ext = image.filename.split(".")[-1]
-        unique_filename = f"{uuid.uuid4()}.{ext}"
-        file_path = os.path.join(UPLOAD_DIR, unique_filename)
-        with open(file_path, "wb") as buffer:
-            shutil.copyfileobj(image.file, buffer)
-        image_url = f"/uploads/{unique_filename}"
+    for image in images:
+        if image.filename:
+            ext = image.filename.split(".")[-1]
+            unique_filename = f"{uuid.uuid4()}.{ext}"
+            file_path = os.path.join(UPLOAD_DIR, unique_filename)
+            with open(file_path, "wb") as buffer:
+                shutil.copyfileobj(image.file, buffer)
+            image_urls.append(f"/uploads/{unique_filename}")
 
-    if video and video.filename:
-        ext = video.filename.split(".")[-1]
-        unique_filename = f"{uuid.uuid4()}.{ext}"
-        file_path = os.path.join(UPLOAD_DIR, unique_filename)
-        with open(file_path, "wb") as buffer:
-            shutil.copyfileobj(video.file, buffer)
-        video_url = f"/uploads/{unique_filename}"
+    for video in videos:
+        if video.filename:
+            ext = video.filename.split(".")[-1]
+            unique_filename = f"{uuid.uuid4()}.{ext}"
+            file_path = os.path.join(UPLOAD_DIR, unique_filename)
+            with open(file_path, "wb") as buffer:
+                shutil.copyfileobj(video.file, buffer)
+            video_urls.append(f"/uploads/{unique_filename}")
 
     try:
         conn = get_db_connection()
         cursor = conn.cursor()
         cursor.execute("""
-            INSERT INTO activities (title, description, image_url, video_url)
+            INSERT INTO activities (title, description, image_urls, video_urls)
             VALUES (%s, %s, %s, %s)
             RETURNING id;
-        """, (title, description, image_url, video_url))
+        """, (title, description, image_urls, video_urls))
         activity_id = cursor.fetchone()[0]
         conn.commit()
         cursor.close()
@@ -363,13 +380,14 @@ async def create_activity(
     except Exception as e:
         raise HTTPException(status_code=500, detail=f"Database error: {str(e)}")
 
+
 @app.get("/api/activities")
 async def get_activities():
     try:
         conn = get_db_connection()
         cursor = conn.cursor()
         cursor.execute("""
-            SELECT id, title, description, image_url, video_url, created_at 
+            SELECT id, title, description, image_urls, video_urls, created_at 
             FROM activities 
             ORDER BY created_at DESC;
         """)
@@ -382,8 +400,8 @@ async def get_activities():
                 "id": row[0],
                 "title": row[1],
                 "description": row[2],
-                "image_url": row[3],
-                "video_url": row[4],
+                "image_urls": row[3] or [],
+                "video_urls": row[4] or [],
                 "created_at": row[5].isoformat() if row[5] else None
             }
             for row in rows
@@ -392,13 +410,14 @@ async def get_activities():
     except Exception as e:
         raise HTTPException(status_code=500, detail=f"Database error: {str(e)}")
 
+
 @app.get("/api/activities/{activity_id}")
 async def get_activity(activity_id: int):
     try:
         conn = get_db_connection()
         cursor = conn.cursor()
         cursor.execute("""
-            SELECT id, title, description, image_url, video_url, created_at
+            SELECT id, title, description, image_urls, video_urls, created_at
             FROM activities
             WHERE id = %s;
         """, (activity_id,))
@@ -413,14 +432,184 @@ async def get_activity(activity_id: int):
             "id": row[0],
             "title": row[1],
             "description": row[2],
-            "image_url": row[3],
-            "video_url": row[4],
+            "image_urls": row[3] or [],
+            "video_urls": row[4] or [],
             "created_at": row[5].isoformat() if row[5] else None,
         }
     except HTTPException:
         raise
     except Exception as e:
         raise HTTPException(status_code=500, detail=f"Database error: {str(e)}")
+
+
+@app.put("/api/activities/{activity_id}")
+async def update_activity(
+    activity_id: int,
+    title: str = Form(...),
+    description: str = Form(...),
+    images: List[UploadFile] = File(default=[]),
+    videos: List[UploadFile] = File(default=[])
+):
+    try:
+        conn = get_db_connection()
+        cursor = conn.cursor()
+        
+        cursor.execute("SELECT image_urls, video_urls FROM activities WHERE id = %s", (activity_id,))
+        existing = cursor.fetchone()
+        
+        if not existing:
+            cursor.close()
+            conn.close()
+            raise HTTPException(status_code=404, detail="Activity not found")
+        
+        old_image_urls, old_video_urls = existing or ([], [])
+        
+        new_image_urls = list(old_image_urls) if old_image_urls else []
+        new_video_urls = list(old_video_urls) if old_video_urls else []
+
+        if images and any(img.filename for img in images):
+            for old_url in (old_image_urls or []):
+                old_file = os.path.join(UPLOAD_DIR, old_url.replace("/uploads/", ""))
+                if os.path.exists(old_file): os.remove(old_file)
+            new_image_urls = []
+            for image in images:
+                if image.filename:
+                    ext = image.filename.split(".")[-1]
+                    unique_filename = f"{uuid.uuid4()}.{ext}"
+                    file_path = os.path.join(UPLOAD_DIR, unique_filename)
+                    with open(file_path, "wb") as buffer:
+                        shutil.copyfileobj(image.file, buffer)
+                    new_image_urls.append(f"/uploads/{unique_filename}")
+
+        if videos and any(vid.filename for vid in videos):
+            for old_url in (old_video_urls or []):
+                old_file = os.path.join(UPLOAD_DIR, old_url.replace("/uploads/", ""))
+                if os.path.exists(old_file): os.remove(old_file)
+            new_video_urls = []
+            for video in videos:
+                if video.filename:
+                    ext = video.filename.split(".")[-1]
+                    unique_filename = f"{uuid.uuid4()}.{ext}"
+                    file_path = os.path.join(UPLOAD_DIR, unique_filename)
+                    with open(file_path, "wb") as buffer:
+                        shutil.copyfileobj(video.file, buffer)
+                    new_video_urls.append(f"/uploads/{unique_filename}")
+
+        cursor.execute("""
+            UPDATE activities 
+            SET title = %s, description = %s, image_urls = %s, video_urls = %s
+            WHERE id = %s
+            RETURNING id;
+        """, (title, description, new_image_urls, new_video_urls, activity_id))
+        
+        updated_id = cursor.fetchone()[0]
+        conn.commit()
+        cursor.close()
+        conn.close()
+        
+        return {"message": "Activity updated successfully!", "id": updated_id}
+    except HTTPException:
+        raise
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=f"Database error: {str(e)}")
+
+
+@app.delete("/api/activities/{activity_id}")
+async def delete_activity(activity_id: int):
+    try:
+        conn = get_db_connection()
+        cursor = conn.cursor()
+        
+        cursor.execute("SELECT image_urls, video_urls FROM activities WHERE id = %s", (activity_id,))
+        existing = cursor.fetchone()
+        
+        if not existing:
+            cursor.close()
+            conn.close()
+            raise HTTPException(status_code=404, detail="Activity not found")
+        
+        image_urls, video_urls = existing or ([], [])
+        
+        cursor.execute("DELETE FROM activities WHERE id = %s", (activity_id,))
+        conn.commit()
+        cursor.close()
+        conn.close()
+        
+        for url in (image_urls or []):
+            old_file = os.path.join(UPLOAD_DIR, url.replace("/uploads/", ""))
+            if os.path.exists(old_file): os.remove(old_file)
+            
+        for url in (video_urls or []):
+            old_file = os.path.join(UPLOAD_DIR, url.replace("/uploads/", ""))
+            if os.path.exists(old_file): os.remove(old_file)
+        
+        return {"message": "Activity deleted successfully!"}
+    except HTTPException:
+        raise
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=f"Database error: {str(e)}")
+
+
+# =============================================================
+# NEW: CONTACT FORM EMAIL ENDPOINT
+# =============================================================
+@app.post("/api/contact")
+async def send_contact_email(req: ContactRequest):
+    try:
+        # Configure Resend API Key
+        resend.api_key = os.getenv("RESEND_API_KEY")
+        
+        subject = f"[Website Inquiry] {req.inquiryType} — {req.firstName} {req.lastName}"
+        
+        html_content = f"""
+        <div style="font-family: Arial, sans-serif; max-width: 600px; margin: 0 auto;">
+            <h2 style="color: #0B1E3D; border-bottom: 2px solid #FBBF24; padding-bottom: 10px;">
+                New Website Inquiry
+            </h2>
+            
+            <div style="background: #f8fafc; padding: 20px; border-radius: 8px; margin: 20px 0;">
+                <p style="margin: 8px 0;"><strong>Inquiry Type:</strong> {req.inquiryType}</p>
+                <p style="margin: 8px 0;"><strong>Name:</strong> {req.firstName} {req.lastName}</p>
+                <p style="margin: 8px 0;"><strong>Email:</strong> <a href="mailto:{req.email}" style="color: #0B1E3D;">{req.email}</a></p>
+                {f'<p style="margin: 8px 0;"><strong>Phone:</strong> {req.phone}</p>' if req.phone else ''}
+                {f'<p style="margin: 8px 0;"><strong>Company:</strong> {req.companyName}</p>' if req.companyName else ''}
+                {f'<p style="margin: 8px 0;"><strong>Website:</strong> <a href="{req.website}" style="color: #0B1E3D;">{req.website}</a></p>' if req.website else ''}
+            </div>
+            
+            <h3 style="color: #0B1E3D;">Message:</h3>
+            <div style="background: #ffffff; padding: 20px; border-left: 4px solid #FBBF24; border-radius: 4px;">
+                <p style="line-height: 1.6; color: #334155;">{req.message.replace(chr(10), '<br>')}</p>
+            </div>
+            
+            <div style="margin-top: 30px; padding-top: 20px; border-top: 1px solid #e2e8f0; font-size: 12px; color: #94a3b8;">
+                <p>This inquiry was submitted via the DYNA WISDOM website contact form.</p>
+                {f'<p style="margin-top: 8px;"><em>User opted in to receive occasional insights.</em></p>' if req.optIn else ''}
+            </div>
+        </div>
+        """
+        
+        params = {
+            "from": os.getenv("CONTACT_EMAIL_FROM", "onboarding@resend.dev"),
+            "to": os.getenv("CONTACT_EMAIL_TO", "gen@akademia.co.jp"),
+            "subject": subject,
+            "html": html_content,
+            "reply_to": req.email
+        }
+        
+        email = resend.Emails.send(params)
+        
+        return {
+            "status": "success", 
+            "message": "Your message has been sent successfully! We'll get back to you soon."
+        }
+        
+    except Exception as e:
+        print(f"Email sending error: {str(e)}")
+        raise HTTPException(
+            status_code=500, 
+            detail="Failed to send email. Please try again later or contact us directly."
+        )
+
 
 # =============================================================
 # EXISTING AI CHAT & TTS ENDPOINTS

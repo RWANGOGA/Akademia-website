@@ -2,11 +2,10 @@
 
 import { useState } from "react";
 import Header from "@/components/Header";
-import { Phone, Mail, MapPin } from "lucide-react";
+import { Phone, Mail, MapPin, CheckCircle, AlertCircle, Loader2 } from "lucide-react";
 
 const DIRECTOR_EMAIL = "ai-pod@akademia.sakura.ne.jp";
-const RECIPIENT_EMAILS = DIRECTOR_EMAIL;
-const DIRECTOR_WHATSAPP = "819057563969"; // international format, no symbols
+const DIRECTOR_WHATSAPP = "819057563969";
 const DIRECTOR_PHONE_DISPLAY = "090-5756-3969";
 
 const INQUIRY_TYPES = [
@@ -18,7 +17,6 @@ const INQUIRY_TYPES = [
   "Other",
 ];
 
-// Office location used in the map + contact details section below
 const OFFICE_ADDRESS_LINES = [
   "Plot 2133, Tank Hill Road,",
   "Muyenga, Kampala, Uganda",
@@ -28,11 +26,6 @@ const OFFICE_LNG = 32.6087117;
 const OFFICE_MAPS_LINK = "https://maps.google.com/?cid=320021674925450370";
 const OFFICE_PHONE_DISPLAY = "090-5756-3969";
 const OFFICE_EMAIL_DISPLAY = "ai-pod@akademia.sakura.ne.jp";
-
-// Shared field styling — clear text color, white background, and a
-// visibly different focus state so users can always see what they're typing.
-const inputClass =
-  "w-full border-2 border-slate-300 rounded-md px-4 py-3 text-slate-900 bg-white placeholder:text-slate-400 focus:outline-none focus:border-yellow-500 focus:bg-yellow-50 transition-colors";
 
 type FormState = {
   inquiryType: string;
@@ -61,6 +54,9 @@ const initialState: FormState = {
 export default function ContactPage() {
   const [form, setForm] = useState<FormState>(initialState);
   const [error, setError] = useState("");
+  const [isSubmitting, setIsSubmitting] = useState(false);
+  const [submitStatus, setSubmitStatus] = useState<"idle" | "success" | "error">("idle");
+  const [statusMessage, setStatusMessage] = useState("");
 
   function update<K extends keyof FormState>(key: K, value: FormState[K]) {
     setForm((prev) => ({ ...prev, [key]: value }));
@@ -75,24 +71,8 @@ export default function ContactPage() {
     return "";
   }
 
-  function buildMessage() {
-    return [
-      `Inquiry Type: ${form.inquiryType}`,
-      `Name: ${form.firstName} ${form.lastName}`,
-      `Email: ${form.email}`,
-      form.phone && `Phone: ${form.phone}`,
-      form.companyName && `Company: ${form.companyName}`,
-      form.website && `Website: ${form.website}`,
-      "",
-      "Message:",
-      form.message,
-    ]
-      .filter(Boolean)
-      .join("\n");
-  }
-
-  // Route inquiry via pre-filled email draft (mailto:)
-  function handleSubmit(e: React.FormEvent) {
+  // Submit via backend API
+  async function handleSubmit(e: React.FormEvent) {
     e.preventDefault();
     const validationError = validate();
     if (validationError) {
@@ -100,15 +80,33 @@ export default function ContactPage() {
       return;
     }
     setError("");
+    setIsSubmitting(true);
 
-    const subject = encodeURIComponent(
-      `[Website Inquiry] ${form.inquiryType} — ${form.firstName} ${form.lastName}`
-    );
-    const body = encodeURIComponent(buildMessage());
-    window.location.href = `mailto:${RECIPIENT_EMAILS}?subject=${subject}&body=${body}`;
+    try {
+      const response = await fetch("/api/contact", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify(form),
+      });
+
+      const data = await response.json();
+
+      if (!response.ok) {
+        throw new Error(data.detail || "Failed to send message");
+      }
+
+      setSubmitStatus("success");
+      setStatusMessage(data.message || "Your message has been sent successfully!");
+      setForm(initialState); // Reset form
+    } catch (err: any) {
+      setSubmitStatus("error");
+      setStatusMessage(err.message || "Something went wrong. Please try again.");
+    } finally {
+      setIsSubmitting(false);
+    }
   }
 
-  // Route inquiry via WhatsApp
+  // WhatsApp handler (unchanged)
   function handleWhatsApp() {
     const validationError = validate();
     if (validationError) {
@@ -116,8 +114,41 @@ export default function ContactPage() {
       return;
     }
     setError("");
-    const text = encodeURIComponent(buildMessage());
+    
+    const text = encodeURIComponent(
+      `Inquiry Type: ${form.inquiryType}\nName: ${form.firstName} ${form.lastName}\nEmail: ${form.email}\n${form.phone ? `Phone: ${form.phone}\n` : ""}${form.companyName ? `Company: ${form.companyName}\n` : ""}${form.website ? `Website: ${form.website}\n` : ""}\nMessage:\n${form.message}`
+    );
     window.open(`https://wa.me/${DIRECTOR_WHATSAPP}?text=${text}`, "_blank");
+  }
+
+  const inputClass = "w-full bg-slate-50 border border-slate-300 rounded-md px-4 py-3 text-slate-900 placeholder-slate-400 focus:outline-none focus:ring-2 focus:ring-yellow-500 focus:bg-white transition-colors";
+
+  // Success State
+  if (submitStatus === "success") {
+    return (
+      <div className="min-h-screen bg-white">
+        <Header />
+        <section className="flex items-center justify-center px-4 py-20 sm:py-32">
+          <div className="max-w-2xl mx-auto text-center">
+            <div className="w-20 h-20 bg-green-100 rounded-full flex items-center justify-center mx-auto mb-6">
+              <CheckCircle className="w-12 h-12 text-green-600" />
+            </div>
+            <h1 className="text-3xl sm:text-4xl font-extrabold text-[#0B1E3D] mb-4">
+              Message Sent Successfully!
+            </h1>
+            <p className="text-slate-600 text-lg mb-8">
+              {statusMessage}
+            </p>
+            <button
+              onClick={() => setSubmitStatus("idle")}
+              className="inline-flex items-center gap-2 bg-[#0B1E3D] text-white px-6 py-3 rounded-lg font-bold hover:bg-[#162a4d] transition-colors"
+            >
+              Send Another Message
+            </button>
+          </div>
+        </section>
+      </div>
+    );
   }
 
   return (
@@ -154,12 +185,28 @@ export default function ContactPage() {
               How can we help you?
             </h2>
             <p className="text-slate-500 text-sm sm:text-base">
-              Reach out below, and we&apos;ll be in touch.
+              Reach out below, and we'll be in touch.
             </p>
           </div>
 
+          {/* Error Message */}
+          {error && (
+            <div className="mb-6 p-4 rounded-lg bg-red-50 text-red-800 border border-red-200 flex items-start gap-3">
+              <AlertCircle className="w-5 h-5 mt-0.5 flex-shrink-0" />
+              <span className="text-sm font-medium">{error}</span>
+            </div>
+          )}
+
+          {/* Backend Error Message */}
+          {submitStatus === "error" && (
+            <div className="mb-6 p-4 rounded-lg bg-red-50 text-red-800 border border-red-200 flex items-start gap-3">
+              <AlertCircle className="w-5 h-5 mt-0.5 flex-shrink-0" />
+              <span className="text-sm font-medium">{statusMessage}</span>
+            </div>
+          )}
+
           <div className="mb-6">
-            <label className="block text-sm font-semibold text-slate-500 mb-2">
+            <label className="block text-sm font-semibold text-slate-700 mb-2">
               Inquiry Type<span className="text-red-500">*</span>
             </label>
             <select
@@ -178,7 +225,7 @@ export default function ContactPage() {
 
           <div className="grid sm:grid-cols-2 gap-6 mb-6">
             <div>
-              <label className="block text-sm font-semibold text-slate-500 mb-2">
+              <label className="block text-sm font-semibold text-slate-700 mb-2">
                 First Name<span className="text-red-500">*</span>
               </label>
               <input
@@ -189,7 +236,7 @@ export default function ContactPage() {
               />
             </div>
             <div>
-              <label className="block text-sm font-semibold text-slate-500 mb-2">Phone</label>
+              <label className="block text-sm font-semibold text-slate-700 mb-2">Phone</label>
               <input
                 type="tel"
                 value={form.phone}
@@ -201,7 +248,7 @@ export default function ContactPage() {
 
           <div className="grid sm:grid-cols-2 gap-6 mb-6">
             <div>
-              <label className="block text-sm font-semibold text-slate-500 mb-2">
+              <label className="block text-sm font-semibold text-slate-700 mb-2">
                 Last Name<span className="text-red-500">*</span>
               </label>
               <input
@@ -212,7 +259,7 @@ export default function ContactPage() {
               />
             </div>
             <div>
-              <label className="block text-sm font-semibold text-slate-500 mb-2">Company Name</label>
+              <label className="block text-sm font-semibold text-slate-700 mb-2">Company Name</label>
               <input
                 type="text"
                 value={form.companyName}
@@ -224,7 +271,7 @@ export default function ContactPage() {
 
           <div className="grid sm:grid-cols-2 gap-6 mb-6">
             <div>
-              <label className="block text-sm font-semibold text-slate-500 mb-2">
+              <label className="block text-sm font-semibold text-slate-700 mb-2">
                 Email<span className="text-red-500">*</span>
               </label>
               <input
@@ -235,7 +282,7 @@ export default function ContactPage() {
               />
             </div>
             <div>
-              <label className="block text-sm font-semibold text-slate-500 mb-2">Website</label>
+              <label className="block text-sm font-semibold text-slate-700 mb-2">Website</label>
               <input
                 type="text"
                 value={form.website}
@@ -246,7 +293,7 @@ export default function ContactPage() {
           </div>
 
           <div className="mb-6">
-            <label className="block text-sm font-semibold text-slate-500 mb-2">
+            <label className="block text-sm font-semibold text-slate-700 mb-2">
               Tell Us More<span className="text-red-500">*</span>
             </label>
             <textarea
@@ -264,18 +311,26 @@ export default function ContactPage() {
               onChange={(e) => update("optIn", e.target.checked)}
               className="mt-1 w-4 h-4 accent-yellow-500"
             />
-            I&apos;d like to receive occasional insights from DYNA WISDOM.
+            I'd like to receive occasional insights from DYNA WISDOM.
           </label>
-
-          {error && <p className="text-red-500 text-sm mb-4">{error}</p>}
 
           <div className="flex flex-col sm:flex-row items-stretch sm:items-center gap-3 sm:gap-4">
             <button
               type="submit"
-              className="inline-flex items-center justify-center gap-2 bg-yellow-500 hover:bg-yellow-600 transition-colors text-slate-900 font-bold px-6 sm:px-8 py-3 rounded-md text-sm sm:text-base"
+              disabled={isSubmitting}
+              className="inline-flex items-center justify-center gap-2 bg-yellow-500 hover:bg-yellow-600 transition-colors text-slate-900 font-bold px-6 sm:px-8 py-3 rounded-md text-sm sm:text-base disabled:opacity-50 disabled:cursor-not-allowed"
             >
-              Submit
-              <span aria-hidden>{"\u2192"}</span>
+              {isSubmitting ? (
+                <>
+                  <Loader2 className="w-5 h-5 animate-spin" />
+                  Sending...
+                </>
+              ) : (
+                <>
+                  Submit
+                  <span aria-hidden>{"\u2192"}</span>
+                </>
+              )}
             </button>
             <button
               type="button"
@@ -289,10 +344,9 @@ export default function ContactPage() {
         </form>
       </section>
 
-      {/* ================= MAP + CONTACT DETAILS SECTION ================= */}
+      {/* MAP + CONTACT DETAILS (unchanged) */}
       <section className="w-full">
         <div className="flex flex-col md:flex-row w-full min-h-[520px]">
-          {/* Map (left / main area) */}
           <div className="w-full md:w-2/3 min-h-[360px] md:min-h-[520px]">
             <iframe
               src={`https://maps.google.com/maps?q=${OFFICE_LAT},${OFFICE_LNG}&z=16&output=embed`}
@@ -306,7 +360,6 @@ export default function ContactPage() {
             />
           </div>
 
-          {/* Dark navy contact details sidebar (right) */}
           <div className="w-full md:w-1/3 bg-[#0B1E3D] text-white px-8 sm:px-10 py-12 sm:py-14 flex flex-col justify-center">
             <h3 className="text-2xl sm:text-3xl font-bold leading-snug mb-3">
               Reach us through our contact details.
@@ -340,8 +393,6 @@ export default function ContactPage() {
                   {OFFICE_ADDRESS_LINES.map((line) => (
                     <p key={line}>{line}</p>
                   ))}
-
-                  {/* FIXED: Added the missing <a tag here */}
                   <a
                     href={OFFICE_MAPS_LINK}
                     target="_blank"
@@ -357,7 +408,7 @@ export default function ContactPage() {
         </div>
       </section>
 
-      {/* ================= WHAT HAPPENS NEXT ================= */}
+      {/* WHAT HAPPENS NEXT (unchanged) */}
       <section className="bg-slate-100 py-16 sm:py-20 md:py-24 px-4 sm:px-6">
         <div className="max-w-4xl mx-auto">
           <h2 className="text-4xl sm:text-5xl md:text-6xl font-extrabold text-[#0B1E3D] mb-10 md:mb-14 tracking-tight">
@@ -367,7 +418,7 @@ export default function ContactPage() {
           <div className="space-y-6 sm:space-y-8">
             <p className="text-slate-700 text-base sm:text-lg leading-relaxed">
               Having received and processed your request, we will reach you shortly to
-              detail your project needs and sign an NDA (Non Disclosure Agreement ) to ensure the confidentiality of
+              detail your project needs and sign an NDA (Non Disclosure Agreement) to ensure the confidentiality of
               information.
             </p>
             <p className="text-slate-700 text-base sm:text-lg leading-relaxed">

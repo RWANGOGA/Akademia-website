@@ -18,6 +18,11 @@ const nextConfig: NextConfig = {
         source: '/api/:path*',
         destination: 'http://localhost:8000/api/:path*',
       },
+      {
+        // ⭐ NEW: Forward uploaded images/videos to the backend ⭐
+        source: '/uploads/:path*',
+        destination: 'http://localhost:8000/uploads/:path*',
+      },
     ];
   },
 };
