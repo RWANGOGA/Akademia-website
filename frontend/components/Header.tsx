@@ -15,15 +15,15 @@ export default function Header() {
       subItems: {
         "AI & Data Science": {
           desc: "Intelligent systems and predictive modeling.",
-          links: ["AI Consulting", "Data Governance", "Robotics Integration", "AI-powered SDLC"]
+          href: "/services"
         },
         "Software Engineering": {
           desc: "Robust architecture for enterprise growth.",
-          links: ["Enterprise Apps", "Digital Transformation", "Cloud Infrastructure", "Database Management"]
+          href: "/services"
         },
         "Industrial Systems": {
           desc: "Hardware-level engineering and optimization.",
-          links: ["Vehicle Software", "Embedded Systems", "Industry Machine Controls", "IoT Pipelines"]
+          href: "/services"
         }
       }
     },
@@ -32,15 +32,15 @@ export default function Header() {
       subItems: {
         "Web & Cloud": {
           desc: "Modern, high-performance web and backend.",
-          links: ["Next.js (React)", "TypeScript", "Node.js", "Cloud Clusters"]
+          href: "/tech-stack"
         },
         "Mobile & Native": {
           desc: "Cross-platform and hardware-integrated mobile.",
-          links: ["Flutter", "Swift/Kotlin", "Embedded C++", "Bare-metal Firmware"]
+          href: "/tech-stack"
         },
         "Design & UX": {
           desc: "User-centric interface and system design.",
-          links: ["Vehicle UI/UX", "Machine Interfaces", "Prototyping", "Design Systems"]
+          href: "/tech-stack"
         }
       }
     }
@@ -88,11 +88,11 @@ export default function Header() {
                 <h4 className="font-bold text-lg mb-2 text-slate-950 border-b border-slate-100 pb-2">{key}</h4>
                 <p className="text-slate-500 text-sm mb-4">{data.desc}</p>
                 <ul className="space-y-2">
-                  {data.links.map((link) => (
-                    <li key={link} className="text-xs font-bold text-yellow-600 hover:text-slate-950 cursor-pointer flex items-center transition-colors">
-                      <span className="mr-2 opacity-50">→</span> {link}
-                    </li>
-                  ))}
+                  <li key={data.href} className="text-xs font-bold text-yellow-600 hover:text-slate-950 cursor-pointer flex items-center transition-colors">
+                    <Link href={data.href} className="flex items-center">
+                      <span className="mr-2 opacity-50">→</span> View {key}
+                    </Link>
+                  </li>
                 </ul>
               </div>
             ))}
@@ -143,15 +143,11 @@ export default function Header() {
                           <h5 className="text-yellow-400 font-bold text-sm mb-1">{key}</h5>
                           <p className="text-slate-400 text-xs mb-2">{sub.desc}</p>
                           <ul className="space-y-1.5">
-                            {sub.links.map((link) => (
-                              <li
-                                key={link}
-                                className="text-slate-300 text-sm flex items-center"
-                                onClick={closeMobileMenu}
-                              >
-                                <span className="mr-2 text-yellow-500 opacity-70">→</span> {link}
-                              </li>
-                            ))}
+                            <li className="text-slate-300 text-sm flex items-center">
+                              <Link href={sub.href} onClick={closeMobileMenu} className="flex items-center">
+                                <span className="mr-2 text-yellow-500 opacity-70">→</span> View {key}
+                              </Link>
+                            </li>
                           </ul>
                         </div>
                       ))}

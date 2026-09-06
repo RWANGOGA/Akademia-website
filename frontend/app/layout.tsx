@@ -112,8 +112,6 @@ export default function RootLayout({
         {/* ================= PWA META TAGS ================= */}
         <link rel="manifest" href="/manifest.json" />
         <meta name="theme-color" content="#0B1E3D" />
-        {/* Note: apple-touch-icon will use a default until you add the file to /public later */}
-        <link rel="apple-touch-icon" href="/apple-touch-icon.png" />
 
         {/* Inject JSON-LD Schema for Google */}
         <script
@@ -193,7 +191,9 @@ export default function RootLayout({
         <ChatWidget />
         
         {/* Google Analytics */}
-        <GoogleAnalytics gaId="G-XXXXXXXXXX" />
+        {process.env.NEXT_PUBLIC_GA_ID && (
+          <GoogleAnalytics gaId={process.env.NEXT_PUBLIC_GA_ID} />
+        )}
 
         {/* ================= PWA SERVICE WORKER REGISTRATION ================= */}
         <script

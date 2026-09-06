@@ -1,11 +1,21 @@
 "use client";
 
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import Link from "next/link";
-import { motion, AnimatePresence } from "framer-motion";
+import { motion } from "framer-motion";
 
 export default function ServicesPage() {
   const [approachIndex, setApproachIndex] = useState(0);
+  const [visibleCount, setVisibleCount] = useState(3);
+
+  useEffect(() => {
+    function updateVisibleCount() {
+      setVisibleCount(window.innerWidth < 640 ? 1 : 3);
+    }
+    updateVisibleCount();
+    window.addEventListener("resize", updateVisibleCount);
+    return () => window.removeEventListener("resize", updateVisibleCount);
+  }, []);
 
   const techStack = [
     "React", "Next.js", "TypeScript", "Node.js", "Python", 
@@ -99,8 +109,6 @@ export default function ServicesPage() {
   ];
 
   // Show 1 card on mobile, 2 on tablet, 3 on desktop
-  const [visibleCount, setVisibleCount] = useState(3);
-
   const nextStep = () => setApproachIndex((prev) => (prev < steps.length - visibleCount ? prev + 1 : prev));
   const prevStep = () => setApproachIndex((prev) => (prev > 0 ? prev - 1 : prev));
 
@@ -243,7 +251,7 @@ export default function ServicesPage() {
           </button>
 
           <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-6 md:gap-8 w-full max-w-5xl">
-            {steps.slice(approachIndex, approachIndex + 3).slice(0, typeof window !== "undefined" && window.innerWidth < 640 ? 1 : 3).map((item, index) => (
+            {steps.slice(approachIndex, approachIndex + visibleCount).map((item, index) => (
               <div key={index} className="bg-slate-50 p-6 md:p-8 border border-slate-100 h-full flex flex-col text-left">
                 <h3 className="text-xl md:text-2xl font-bold mb-4 md:mb-6">{item.title}</h3>
                 <p className="text-sm md:text-base text-gray-700 leading-relaxed mb-8 md:mb-12 flex-grow font-medium">{item.desc}</p>

@@ -3,7 +3,6 @@
 import { useState } from "react";
 import Link from "next/link";
 import { motion, AnimatePresence } from "framer-motion";
-import Header from "@/components/Header"; // Import your new Header component
 
 // Structure definition for our capabilities matrix
 interface Capability {
@@ -70,7 +69,6 @@ export default function HomePage() {
     <div className="min-h-screen bg-slate-950 text-white">
       
       {/* ================= NAVIGATION (Replaced with Header Component) ================= */}
-      <Header />
 
       {/* ================= HERO SECTION ================= */}
       <section className="relative bg-slate-900 min-h-[90vh] flex items-center overflow-hidden pt-20">
