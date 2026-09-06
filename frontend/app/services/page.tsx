@@ -41,7 +41,7 @@ export default function ServicesPage() {
     {
       title: "Custom Software Development",
       description:
-        "Embracing state-of-the-art technologies and Akademia's Japanese engineering standards, we build flexible, secure, and high-performing software that optimises business processes and solves unique problems for fast-growing businesses.",
+        "Embracing state-of-the-art technologies and Akademia&apos;s Japanese engineering standards, we build flexible, secure, and high-performing software that optimises business processes and solves unique problems for fast-growing businesses.",
       link: true,
     },
     {
@@ -59,7 +59,7 @@ export default function ServicesPage() {
     {
       title: "Cloud & DevOps Engineering",
       description:
-        "We streamline the software development lifecycle by fostering collaboration between development and operations, with automated builds, tests, and deployments &mdash; backed by Akademia's private cloud infrastructure in Tokyo.",
+        "We streamline the software development lifecycle by fostering collaboration between development and operations, with automated builds, tests, and deployments &mdash; backed by Akademia&apos;s private cloud infrastructure in Tokyo.",
       link: false,
     },
     {
@@ -96,7 +96,7 @@ export default function ServicesPage() {
     {
       title: "Continuous Support and Innovation",
       description:
-        "Beyond initial development, we offer ongoing support and are committed to continually innovating, so your digital solutions evolve in tandem with your business and the broader tech landscape &mdash; backed by Akademia's Japanese engineering standards.",
+        "Beyond initial development, we offer ongoing support and are committed to continually innovating, so your digital solutions evolve in tandem with your business and the broader tech landscape &mdash; backed by Akademia&apos;s Japanese engineering standards.",
     },
   ];
 
@@ -137,13 +137,13 @@ export default function ServicesPage() {
           </h2>
           <div className="w-16 h-1.5 bg-yellow-400 mb-6 md:mb-8"></div>
           <p className="text-base md:text-lg text-gray-600 leading-relaxed max-w-4xl mb-10 md:mb-16">
-            Dyna Wisdom's core services include database design, custom software development, mobile app
+            Dyna Wisdom&apos;s core services include database design, custom software development, mobile app
             development,{" "}
             <Link href="/services" className="text-blue-600 hover:text-blue-700 underline underline-offset-2">
               web application development
             </Link>
             , system integration, as well as API development and integration. This means that regardless of the
-            complexity or scale of your project, backed by Akademia's Japanese engineering standards, we deliver
+            complexity or scale of your project, backed by Akademia&apos;s Japanese engineering standards, we deliver
             bespoke solutions that align with your strategic goals.
           </p>
 
@@ -175,11 +175,11 @@ export default function ServicesPage() {
       {/* SECTION 2b: How Dyna Wisdom's development services help businesses navigate challenges */}
       <section className="py-16 md:py-24 px-4 sm:px-6 lg:px-8 max-w-7xl mx-auto">
         <h2 className="text-3xl sm:text-4xl md:text-5xl font-black text-slate-950 mb-4">
-          How Dyna Wisdom's development services help businesses navigate challenges
+          How Dyna Wisdom&apos;s development services help businesses navigate challenges
         </h2>
         <div className="w-16 h-1.5 bg-yellow-400 mb-6 md:mb-8"></div>
         <p className="text-base md:text-lg text-gray-600 leading-relaxed max-w-4xl mb-10 md:mb-16">
-          The digital landscape is shifting rapidly. Don't get left behind. Dyna Wisdom's robust development
+          The digital landscape is shifting rapidly. Don&apos;t get left behind. Dyna Wisdom&apos;s robust development
           solutions and integrated management systems, backed by Akademia Company Ltd, Japan, are tailored to
           meet the unique challenges of your business.
         </p>
@@ -239,7 +239,7 @@ export default function ServicesPage() {
       {/* SECTION 4: Dyna Wisdom's Proven Approach */}
       <section className="py-16 md:py-24 px-4 max-w-7xl mx-auto border-t border-slate-100 text-center overflow-hidden">
         <h2 className="text-3xl sm:text-4xl md:text-5xl font-black text-slate-950 mb-10 md:mb-16">
-          Dyna Wisdom's proven approach
+          Dyna Wisdom&apos;s proven approach
         </h2>
         <div className="relative flex items-center justify-center gap-2 md:gap-4">
           <button

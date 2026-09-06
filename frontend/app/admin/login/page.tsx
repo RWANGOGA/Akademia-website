@@ -2,6 +2,7 @@
 
 import { useState } from "react";
 import { useRouter } from "next/navigation";
+import Link from "next/link";
 import { Lock, AlertCircle } from "lucide-react";
 
 export default function AdminLoginPage() {
@@ -39,8 +40,8 @@ export default function AdminLoginPage() {
       router.push("/admin");
       router.refresh();
 
-    } catch (err: any) {
-      setError(err.message || "Login failed. Please try again.");
+    } catch (err) {
+      setError(err instanceof Error ? err.message : "Login failed. Please try again.");
     } finally {
       setIsLoading(false);
     }
@@ -103,9 +104,9 @@ export default function AdminLoginPage() {
         </form>
 
         <div className="mt-6 text-center">
-          <a href="/" className="text-sm text-slate-500 hover:text-[#0B1E3D] transition-colors">
+          <Link href="/" className="text-sm text-slate-500 hover:text-[#0B1E3D] transition-colors">
             ← Back to Website
-          </a>
+          </Link>
         </div>
       </div>
     </div>

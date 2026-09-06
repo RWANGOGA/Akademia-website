@@ -1,8 +1,9 @@
 "use client";
 
 import { useState, useEffect } from "react";
-import { useParams, useRouter } from "next/navigation";
+import { useParams } from "next/navigation";
 import Link from "next/link";
+import Image from "next/image";
 import { Calendar, ArrowLeft, Image as ImageIcon, Video, Star, Send, User } from "lucide-react";
 
 type Activity = {
@@ -24,7 +25,6 @@ type Comment = {
 
 export default function ActivityDetailPage() {
   const params = useParams();
-  const router = useRouter();
   const [activity, setActivity] = useState<Activity | null>(null);
   const [isLoading, setIsLoading] = useState(true);
   
@@ -144,9 +144,11 @@ export default function ActivityDetailPage() {
             {/* Primary Hero Image */}
             {activity.image_urls && activity.image_urls.length > 0 && (
               <div className="rounded-2xl overflow-hidden shadow-lg border border-slate-100">
-                <img 
+                <Image 
                   src={activity.image_urls[0]} 
                   alt={activity.title}
+                  width={1200}
+                  height={500}
                   className="w-full h-auto max-h-[500px] object-cover"
                 />
               </div>
@@ -161,9 +163,11 @@ export default function ActivityDetailPage() {
                 <div className="grid grid-cols-2 md:grid-cols-3 gap-4">
                   {activity.image_urls.slice(1).map((url, index) => (
                     <div key={index} className="rounded-xl overflow-hidden shadow-sm border border-slate-100 aspect-square group cursor-pointer">
-                      <img 
+                      <Image 
                         src={url} 
                         alt={`Gallery image ${index + 2}`}
+                        width={400}
+                        height={400}
                         className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-300"
                       />
                     </div>

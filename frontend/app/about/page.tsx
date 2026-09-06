@@ -63,7 +63,7 @@ export default function AboutUsPage() {
     {
       title: "Social Impact",
       items: [
-        "Contribute to Uganda's digital economy.",
+        "Contribute to Uganda&apos;s digital economy.",
         "Demonstrate that African innovation can compete globally.",
         "Encourage responsible and ethical use of AI technologies.",
       ],
@@ -76,7 +76,7 @@ export default function AboutUsPage() {
     { title: "Responsibility", text: "We build AI that is ethical, transparent, and designed to improve lives." },
     { title: "Excellence", text: "We pursue the highest standards in software development, customer service, and business practice." },
     { title: "Continuous Learning", text: "Both people and technology evolve. We invest in learning, experimentation, and lifelong development." },
-    { title: "Empowerment", text: "We believe Uganda's greatest resource is its people. We invest in local talent and create opportunities for individuals to grow into world-class professionals." },
+    { title: "Empowerment", text: "We believe Uganda&apos;s greatest resource is its people. We invest in local talent and create opportunities for individuals to grow into world-class professionals." },
     { title: "Global Mindset", text: "Although proudly Ugandan, we design products and services that meet international standards and serve customers worldwide." },
   ];
 
@@ -164,7 +164,7 @@ export default function AboutUsPage() {
           <div className="text-center mb-16">
             <h2 className="text-3xl md:text-4xl font-bold text-yellow-500 mb-4">Company Profile</h2>
             <p className="text-gray-400 max-w-2xl mx-auto">
-              Who we are, where we're based, and what we do.
+              Who we are, where we&apos;re based, and what we do.
             </p>
           </div>
 
@@ -240,7 +240,7 @@ export default function AboutUsPage() {
               Our Products
             </h2>
             <p className="text-lg md:text-xl text-gray-200 max-w-2xl mb-8">
-              Explore the AI-powered platforms and solutions we've built.
+              Explore the AI-powered platforms and solutions we&apos;ve built.
             </p>
             <span className="inline-block bg-yellow-500 text-black px-8 py-3 rounded font-bold group-hover:bg-yellow-400 transition-all">
               View All Products
@@ -252,7 +252,7 @@ export default function AboutUsPage() {
       {/* DYNA WISDOM ADVANTAGES */}
       <section className="bg-slate-50 py-24 px-12 text-slate-900">
         <div className="max-w-6xl mx-auto">
-          <h2 className="text-5xl md:text-6xl font-bold mb-16 text-center">Dyna Wisdom's advantages</h2>
+          <h2 className="text-5xl md:text-6xl font-bold mb-16 text-center">Dyna Wisdom&apos;s advantages</h2>
           <div className="grid md:grid-cols-2 gap-x-16 gap-y-12">
             {[
               { title: "Cross-Cultural Expertise", text: "Bridging Japanese engineering precision with East African technical talent." },
@@ -397,9 +397,9 @@ export default function AboutUsPage() {
           <div className="mb-20">
             <h3 className="text-3xl font-bold text-yellow-500 mb-6">Evolved Intelligence</h3>
             <blockquote className="text-xl italic text-slate-700 border-l-4 border-yellow-500 pl-6 mb-6">
-              "Evolved Intelligence is the collaborative intelligence that emerges when artificial intelligence and
+              &quot;Evolved Intelligence is the collaborative intelligence that emerges when artificial intelligence and
               human wisdom continuously learn from one another to solve problems that neither could address as
-              effectively alone."
+              effectively alone.&quot;
             </blockquote>
             <p className="text-lg text-slate-600 leading-relaxed mb-4">
               As AI becomes increasingly capable, the future will not be defined by machines replacing people, but by
@@ -412,10 +412,10 @@ export default function AboutUsPage() {
           </div>
 
           <div>
-            <h3 className="text-3xl font-bold text-yellow-500 mb-6">Why "Dyna Wisdom"?</h3>
+            <h3 className="text-3xl font-bold text-yellow-500 mb-6">Why &quot;Dyna Wisdom&quot;?</h3>
             <div className="space-y-4 text-lg text-slate-600 leading-relaxed">
-              <p><span className="font-bold text-slate-900">"Dyna"</span> represents Dynamic—continuous movement, learning, and adaptation.</p>
-              <p><span className="font-bold text-slate-900">"Wisdom"</span> represents the uniquely human ability to exercise judgement, responsibility, empathy, and ethical decision-making.</p>
+              <p><span className="font-bold text-slate-900">&quot;Dyna&quot;</span> represents Dynamic—continuous movement, learning, and adaptation.</p>
+              <p><span className="font-bold text-slate-900">&quot;Wisdom&quot;</span> represents the uniquely human ability to exercise judgement, responsibility, empathy, and ethical decision-making.</p>
               <p>While information creates knowledge, wisdom determines how knowledge should be used.</p>
               <p>As artificial intelligence evolves, human wisdom becomes more—not less—important.</p>
               <p>Dyna Wisdom exists to bring these two forms of intelligence together, creating technology that is not only powerful, but purposeful.</p>

@@ -4,9 +4,7 @@ import { useState } from "react";
 import Header from "@/components/Header";
 import { Phone, Mail, MapPin, CheckCircle, AlertCircle, Loader2 } from "lucide-react";
 
-const DIRECTOR_EMAIL = "ai-pod@akademia.sakura.ne.jp";
 const DIRECTOR_WHATSAPP = "819057563969";
-const DIRECTOR_PHONE_DISPLAY = "090-5756-3969";
 
 const INQUIRY_TYPES = [
   "Finding a Solution / Product",
@@ -98,9 +96,9 @@ export default function ContactPage() {
       setSubmitStatus("success");
       setStatusMessage(data.message || "Your message has been sent successfully!");
       setForm(initialState); // Reset form
-    } catch (err: any) {
+    } catch (err) {
       setSubmitStatus("error");
-      setStatusMessage(err.message || "Something went wrong. Please try again.");
+      setStatusMessage(err instanceof Error ? err.message : "Something went wrong. Please try again.");
     } finally {
       setIsSubmitting(false);
     }
@@ -185,7 +183,7 @@ export default function ContactPage() {
               How can we help you?
             </h2>
             <p className="text-slate-500 text-sm sm:text-base">
-              Reach out below, and we'll be in touch.
+              Reach out below, and we&apos;ll be in touch.
             </p>
           </div>
 
@@ -311,7 +309,7 @@ export default function ContactPage() {
               onChange={(e) => update("optIn", e.target.checked)}
               className="mt-1 w-4 h-4 accent-yellow-500"
             />
-            I'd like to receive occasional insights from DYNA WISDOM.
+            I&apos;d like to receive occasional insights from DYNA WISDOM.
           </label>
 
           <div className="flex flex-col sm:flex-row items-stretch sm:items-center gap-3 sm:gap-4">
@@ -400,7 +398,7 @@ export default function ContactPage() {
                     rel="noopener noreferrer"
                     className="inline-block mt-2 text-yellow-400 font-semibold text-sm hover:text-yellow-300 transition-colors"
                   >
-                    Get Directions {"\u2192"}
+                    Get Directions →
                   </a>
                 </div>
               </div>

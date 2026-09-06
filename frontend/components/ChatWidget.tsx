@@ -28,6 +28,22 @@ type ChatMessage = {
   actions?: ChatAction[];
 };
 
+interface SpeechRecognitionInstance {
+  continuous: boolean;
+  interimResults: boolean;
+  lang: string;
+  onstart: (() => void) | null;
+  onresult: ((event: { results: { [index: number]: { [index: number]: { transcript: string } } } }) => void) | null;
+  onerror: (() => void) | null;
+  onend: (() => void) | null;
+  start(): void;
+}
+
+interface WindowWithSpeechRecognition extends Window {
+  SpeechRecognition?: { new (): SpeechRecognitionInstance };
+  webkitSpeechRecognition?: { new (): SpeechRecognitionInstance };
+}
+
 function ActionIcon({ type }: { type: string }) {
   if (type === "whatsapp") return <MessageCircle className="w-3.5 h-3.5" />;
   if (type === "call") return <Phone className="w-3.5 h-3.5" />;
@@ -68,8 +84,9 @@ export default function ChatWidget() {
   }, [isOpen]);
 
   const toggleListening = () => {
-    const SpeechRecognition = (window as any).SpeechRecognition || (window as any).webkitSpeechRecognition;
-    if (!SpeechRecognition) {
+    const win = window as WindowWithSpeechRecognition;
+    const SpeechRecognitionCtor = win.SpeechRecognition || win.webkitSpeechRecognition;
+    if (!SpeechRecognitionCtor) {
       alert("Speech recognition is not supported in this browser. Try Google Chrome.");
       return;
     }
@@ -79,13 +96,13 @@ export default function ChatWidget() {
       return;
     }
 
-    const recognition = new SpeechRecognition();
+    const recognition = new SpeechRecognitionCtor();
     recognition.continuous = false;
     recognition.interimResults = true;
     recognition.lang = "en-US";
 
-    recognition.onstart = () => setIsListening(true);
-    recognition.onresult = (event: any) => {
+    recognition.onstart = () => setIsThinking(true);
+    recognition.onresult = (event) => {
       const transcript = event.results[0][0].transcript;
       setInput(transcript);
     };
@@ -139,7 +156,7 @@ export default function ChatWidget() {
         { role: "assistant", content: botResponse, actions: botActions }
       ]);
       playAudio(botResponse);
-    } catch (err) {
+    } catch {
       setMessages((prev) => [
         ...prev,
         { role: "assistant", content: "Connection error with DYNA WISDOM core server." }

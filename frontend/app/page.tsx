@@ -3,6 +3,7 @@
 import { useState } from "react";
 import Link from "next/link";
 import { motion, AnimatePresence } from "framer-motion";
+import Image from "next/image";
 
 // Structure definition for our capabilities matrix
 interface Capability {
@@ -57,7 +58,7 @@ export default function HomePage() {
     {
       id: "cloud",
       title: "Cloud Computing",
-      description: "To guarantee unbeatable uptime and ironclad performance metrics, Dyna Wisdom leverages our parent company Akademia's own custom cluster of private dedicated bare-metal cloud servers, hosted directly in Tokyo, Japan.",
+      description: "To guarantee unbeatable uptime and ironclad performance metrics, Dyna Wisdom leverages our parent company Akademia&apos;s own custom cluster of private dedicated bare-metal cloud servers, hosted directly in Tokyo, Japan.",
       imagePath: "/images/image copy 7.png", 
     },
   ];
@@ -87,7 +88,7 @@ export default function HomePage() {
         <div className="absolute inset-0 opacity-5 text-xs text-white font-mono overflow-hidden pointer-events-none">
           {Array.from({ length: 50 }).map((_, i) => (
             <div key={i} className="whitespace-nowrap">
-              const DynaWisdom = {`{`} parentCompany: "Akademia Japan", bridging: "Japan-Uganda", excellence: true {`}`}
+              const DynaWisdom = {'{'} parentCompany: &quot;Akademia Japan&quot;, bridging: &quot;Japan-Uganda&quot;, excellence: true {'}'}
             </div>
           ))}
         </div>
@@ -116,7 +117,7 @@ export default function HomePage() {
               href="/contact"
               className="inline-block bg-yellow-400 hover:bg-yellow-500 text-slate-900 font-semibold px-8 py-4 rounded-sm transition-colors duration-300 text-lg shadow-lg"
             >
-              Let's discuss your project
+              Let&apos;s discuss your project
             </Link>
           </div>
         </div>
@@ -300,10 +301,11 @@ export default function HomePage() {
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
           <div className="grid grid-cols-1 lg:grid-cols-2 gap-12 items-center">
             <div className="relative rounded-lg overflow-hidden shadow-lg order-2 lg:order-1">
-              <img
+              <Image
                 src="https://realmdigital.com/app/uploads/2023/03/Development.webp"
                 alt="Dyna Wisdom development team at work"
-                className="w-full h-full object-cover"
+                fill
+                className="object-cover"
               />
             </div>
 
@@ -349,7 +351,7 @@ export default function HomePage() {
 
           <p className="text-gray-600 text-base sm:text-lg md:text-xl leading-relaxed max-w-3xl mx-auto mb-8 sm:mb-10">
             Partner with Dyna Wisdom and unlock the full potential of your projects. Backed by
-            Akademia Japan's engineering standards, we guide you from initial concept to final
+            Akademia Japan&apos;s engineering standards, we guide you from initial concept to final
             deployment, every step of the way. Start your journey towards digital excellence today.
           </p>
 
@@ -357,7 +359,7 @@ export default function HomePage() {
             href="/contact"
             className="inline-block bg-yellow-400 hover:bg-yellow-500 text-slate-900 font-bold px-6 sm:px-10 py-4 sm:py-5 rounded-md transition-colors duration-300 text-sm sm:text-base md:text-lg shadow-lg w-full sm:w-auto max-w-sm sm:max-w-none"
           >
-            Let's build something remarkable together!
+            Let&apos;s build something remarkable together!
           </Link>
         </div>
       </section>

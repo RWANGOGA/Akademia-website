@@ -2,6 +2,7 @@
 
 import { useState, useEffect } from "react";
 import Link from "next/link";
+import Image from "next/image";
 import { Calendar, Image as ImageIcon, Video, ArrowRight } from "lucide-react";
 
 type Activity = {
@@ -82,9 +83,11 @@ export default function ActivitiesPage() {
                   {/* Thumbnail */}
                   <div className="relative aspect-video bg-slate-100 overflow-hidden">
                     {activity.image_urls && activity.image_urls.length > 0 ? (
-                      <img 
+                      <Image 
                         src={activity.image_urls[0]} 
                         alt={activity.title}
+                        width={640}
+                        height={360}
                         className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-500"
                       />
                     ) : (

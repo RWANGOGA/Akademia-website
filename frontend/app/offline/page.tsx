@@ -12,12 +12,12 @@ export default function OfflinePage() {
         </div>
         
         <h1 className="text-2xl font-bold text-[#0B1E3D] mb-3">
-          You're Currently Offline
+          You&apos;re Currently Offline
         </h1>
         
         <p className="text-slate-600 text-sm leading-relaxed mb-6">
-          It looks like you've lost your internet connection. Don't worry — your DYNA WISDOM app is still installed and ready. 
-          Once you're back online, you'll be able to view the latest activities, post comments, and contact our team.
+          It looks like you&apos;ve lost your internet connection. Don&apos;t worry — your DYNA WISDOM app is still installed and ready. 
+          Once you&apos;re back online, you&apos;ll be able to view the latest activities, post comments, and contact our team.
         </p>
         
         <div className="space-y-3">

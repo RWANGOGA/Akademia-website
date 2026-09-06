@@ -1,8 +1,9 @@
 "use client";
 
-import { useState, useEffect } from "react";
+import { useState, useEffect, useCallback } from "react";
 import { useRouter } from "next/navigation";
 import Link from "next/link";
+import Image from "next/image";
 import { 
   Plus, Edit2, Trash2, Calendar, Image as ImageIcon, 
   Video, LogOut, AlertCircle, CheckCircle, Loader2, ArrowLeft, X 
@@ -35,20 +36,22 @@ export default function AdminPage() {
   const [existingImageUrls, setExistingImageUrls] = useState<string[]>([]);
   const [existingVideoUrls, setExistingVideoUrls] = useState<string[]>([]);
 
-  useEffect(() => {
-    if (view === "list") fetchActivities();
-  }, [view]);
-
-  const fetchActivities = async () => {
+  const fetchActivities = useCallback(async () => {
     setIsLoading(true);
     try {
       const response = await fetch("/api/activities");
       if (!response.ok) throw new Error("Failed to fetch");
       const data = await response.json();
       setActivities(data.activities || []);
-    } catch (err) { console.error(err); } 
-    finally { setIsLoading(false); }
-    };
+    } catch (error) {
+      console.error(error);
+    } finally { setIsLoading(false); }
+  }, []);
+
+  useEffect(() => {
+    // eslint-disable-next-line react-hooks/set-state-in-effect
+    if (view === "list") fetchActivities();
+  }, [view, fetchActivities]);
 
   const handleLogout = () => {
     document.cookie = "admin_token=; path=/; expires=Thu, 01 Jan 1970 00:00:00 GMT";
@@ -105,8 +108,9 @@ export default function AdminPage() {
 
       setStatus({ type: "success", message: editingId ? "Activity updated successfully!" : "Activity created successfully!" });
       setTimeout(() => { resetForm(); setView("list"); }, 1500);
-    } catch (error: any) {
-      setStatus({ type: "error", message: error.message || "An error occurred." });
+    } catch (error) {
+      const message = error instanceof Error ? error.message : "An error occurred.";
+      setStatus({ type: "error", message });
     } finally {
       setIsSubmitting(false);
     }
@@ -121,8 +125,9 @@ export default function AdminPage() {
       setActivities((prev) => prev.filter((a) => a.id !== id));
       setStatus({ type: "success", message: "Activity deleted successfully!" });
       setTimeout(() => setStatus(null), 3000);
-    } catch (error: any) {
-      setStatus({ type: "error", message: error.message || "Delete failed" });
+    } catch (error) {
+      const message = error instanceof Error ? error.message : "Delete failed";
+      setStatus({ type: "error", message });
     } finally { setDeletingId(null); }
   };
 
@@ -180,7 +185,7 @@ export default function AdminPage() {
                   <div className="grid grid-cols-2 sm:grid-cols-4 gap-3 mb-3">
                     {existingImageUrls.map((url, idx) => (
                       <div key={idx} className="relative group aspect-square bg-slate-100 rounded-lg overflow-hidden border border-slate-200">
-                        <img src={url} alt="Existing" className="w-full h-full object-cover" />
+                        <Image src={url} alt="Existing" fill className="object-cover" />
                         <button type="button" onClick={() => removeExistingImage(idx)} className="absolute top-1 right-1 bg-red-500 text-white p-1 rounded-full opacity-0 group-hover:opacity-100 transition-opacity">
                           <X className="w-3 h-3" />
                         </button>
@@ -195,7 +200,7 @@ export default function AdminPage() {
                   <div className="grid grid-cols-2 sm:grid-cols-4 gap-3 mb-3">
                     {images.map((file, idx) => (
                       <div key={idx} className="relative group aspect-square bg-slate-100 rounded-lg overflow-hidden border border-yellow-400">
-                        <img src={URL.createObjectURL(file)} alt="Preview" className="w-full h-full object-cover" />
+                        <Image src={URL.createObjectURL(file)} alt="Preview" fill className="object-cover" unoptimized />
                         <button type="button" onClick={() => removePendingImage(idx)} className="absolute top-1 right-1 bg-red-500 text-white p-1 rounded-full hover:bg-red-600 transition-colors">
                           <X className="w-3 h-3" />
                         </button>
@@ -341,7 +346,7 @@ export default function AdminPage() {
                   <div className="flex flex-col sm:flex-row gap-4 sm:gap-6">
                     <div className="flex-shrink-0 w-full sm:w-32 h-32 bg-slate-100 rounded-lg overflow-hidden relative flex items-center justify-center">
                       {activity.image_urls && activity.image_urls.length > 0 ? (
-                        <img src={activity.image_urls[0]} alt={activity.title} className="w-full h-full object-cover" />
+                        <Image src={activity.image_urls[0]} alt={activity.title} fill className="object-cover" />
                       ) : (
                         <ImageIcon className="w-10 h-10 text-slate-300" />
                       )}
