@@ -355,6 +355,7 @@ export default function ContactPage() {
               style={{ border: 0, minHeight: "360px", display: "block" }}
               allowFullScreen
               loading="lazy"
+              sandbox="allow-scripts allow-same-origin allow-popups"
               referrerPolicy="no-referrer-when-downgrade"
               title="Dyna Wisdom Office Location"
             />

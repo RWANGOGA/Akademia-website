@@ -7,3 +7,6 @@ backend/uploads/
 backend/uploads/
 backend/.env
 frontend/.next/
+.DS_Store
+backend/.DS_Store
+frontend/.DS_Store

@@ -3,11 +3,14 @@ import re
 import random
 import uuid
 import shutil
+import time
+import html as html_lib
 import jwt
-import resend  # <-- ADDED for email sending
+import resend
 from datetime import datetime, timedelta
+from collections import defaultdict
 import psycopg2
-from fastapi import FastAPI, HTTPException, UploadFile, File, Form
+from fastapi import FastAPI, HTTPException, UploadFile, File, Form, Depends, Request
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.responses import Response
 from fastapi.staticfiles import StaticFiles
@@ -27,24 +30,90 @@ app = FastAPI(title="Akademia Multi-Page Deep Crawler & Neural Core", version="7
 
 app.add_middleware(
     CORSMiddleware,
-    allow_origins=["http://localhost:3000", "http://localhost", "https://ai-pod.net"],
+    allow_origins=["http://localhost:3000", "https://ai-pod.net"],
     allow_credentials=True,
-    allow_methods=["*"],
-    allow_headers=["*"],
+    allow_methods=["GET", "POST", "PUT", "DELETE", "OPTIONS"],
+    allow_headers=["Authorization", "Content-Type"],
+    max_age=86400,
 )
 
 groq_client = Groq(api_key=os.getenv("GROQ_API_KEY"))
 
 # =============================================================
-# JWT AUTHENTICATION CONFIG
+# SECURITY CONFIG
 # =============================================================
-SECRET_KEY = os.getenv("JWT_SECRET_KEY", "your-super-secret-key-change-this-in-production")
+REQUIRED_ENV_VARS = [
+    "JWT_SECRET_KEY",
+    "ADMIN_USER",
+    "ADMIN_PASS",
+    "DATABASE_URL",
+    "GROQ_API_KEY",
+    "DEEPGRAM_API_KEY",
+    "RESEND_API_KEY",
+]
+missing_env = [var for var in REQUIRED_ENV_VARS if not os.getenv(var)]
+if missing_env:
+    raise RuntimeError(f"Missing required environment variables: {', '.join(missing_env)}")
+
+SECRET_KEY = os.environ["JWT_SECRET_KEY"]
 ALGORITHM = "HS256"
+ADMIN_USER = os.environ["ADMIN_USER"]
+ADMIN_PASS = os.environ["ADMIN_PASS"]
+DATABASE_URL = os.environ["DATABASE_URL"]
+
+_rate_limit_store = defaultdict(list)
+RATE_LIMIT_WINDOW = 60
+RATE_LIMIT_MAX = 20
+
+def _is_rate_limited(key: str) -> bool:
+    now = time.time()
+    timestamps = _rate_limit_store[key]
+    _rate_limit_store[key] = [ts for ts in timestamps if now - ts < RATE_LIMIT_WINDOW]
+    if len(_rate_limit_store[key]) >= RATE_LIMIT_MAX:
+        return True
+    _rate_limit_store[key].append(now)
+    return False
+
+def rate_limiter_dep(request: Request):
+    client_ip = request.client.host if request.client else "unknown"
+    if _is_rate_limited(client_ip):
+        raise HTTPException(status_code=429, detail="Too many requests. Please try again later.")
+
+def get_current_admin(request: Request):
+    auth_header = request.headers.get("Authorization", "")
+    if not auth_header.startswith("Bearer "):
+        raise HTTPException(status_code=401, detail="Missing or invalid authorization header")
+    token = auth_header.split(" ", 1)[1]
+    try:
+        payload = jwt.decode(token, SECRET_KEY, algorithms=[ALGORITHM])
+        if payload.get("sub") != ADMIN_USER:
+            raise HTTPException(status_code=403, detail="Forbidden")
+    except jwt.ExpiredSignatureError:
+        raise HTTPException(status_code=401, detail="Token expired")
+    except jwt.InvalidTokenError:
+        raise HTTPException(status_code=401, detail="Invalid token")
+    return payload
+
+@app.get("/api/auth/verify")
+async def verify_token(request: Request):
+    auth_header = request.headers.get("Authorization", "")
+    if not auth_header.startswith("Bearer "):
+        raise HTTPException(status_code=401, detail="Missing token")
+    token = auth_header.split(" ", 1)[1]
+    try:
+        payload = jwt.decode(token, SECRET_KEY, algorithms=[ALGORITHM])
+        return {"valid": True, "user": payload.get("sub")}
+    except jwt.ExpiredSignatureError:
+        raise HTTPException(status_code=401, detail="Token expired")
+    except jwt.InvalidTokenError:
+        raise HTTPException(status_code=401, detail="Invalid token")
 
 @app.post("/api/auth/login")
 async def admin_login(username: str = Form(...), password: str = Form(...)):
-    admin_user = os.getenv("ADMIN_USER", "admin")
-    admin_pass = os.getenv("ADMIN_PASS", "Akademia2024!")
+    if not os.getenv("ADMIN_USER") or not os.getenv("ADMIN_PASS"):
+        raise HTTPException(status_code=500, detail="Server not configured")
+    admin_user = os.environ["ADMIN_USER"]
+    admin_pass = os.environ["ADMIN_PASS"]
     
     if username == admin_user and password == admin_pass:
         token = jwt.encode(
@@ -63,12 +132,7 @@ async def admin_login(username: str = Form(...), password: str = Form(...)):
 # DATABASE CONNECTION
 # =============================================================
 def get_db_connection():
-    return psycopg2.connect(
-        dbname="akademia_cms",
-        user="akademia_admin",
-        password="akademia_123",
-        host="db"  # "db" is the correct service name when running inside Docker
-    )
+    return psycopg2.connect(DATABASE_URL)
 
 # =============================================================
 # STATIC FILES (To serve uploaded images/videos)
@@ -225,6 +289,11 @@ def crawl_entire_website(base_url: str, max_pages: int = 5) -> str:
             continue
         visited.add(current_url)
         try:
+            parsed = urlparse(current_url)
+            if parsed.scheme not in ("http", "https"):
+                continue
+            if parsed.hostname not in (domain, f"www.{domain}"):
+                continue
             response = requests.get(current_url, headers=headers, timeout=3)
             if response.status_code == 200:
                 soup = BeautifulSoup(response.text, 'html.parser')
@@ -278,12 +347,17 @@ class ChatRequest(BaseModel):
 class TTSRequest(BaseModel):
     text: str
 
+class CommentRequest(BaseModel):  # <-- FIXED: lowercase 'class'
+    user_name: str
+    rating: int
+    comment: str    
+
 class ContentUpdate(BaseModel):
     content_key: str
     content_value: str
     admin_secret: str
 
-class ContactRequest(BaseModel):  # <-- ADDED for Contact Form
+class ContactRequest(BaseModel):
     inquiryType: str
     firstName: str
     lastName: str
@@ -313,8 +387,10 @@ async def get_universal_content(content_key: str):
         raise HTTPException(status_code=500, detail=str(e))
 
 @app.post("/content/update")
-async def update_universal_content(req: ContentUpdate):
+async def update_universal_content(req: ContentUpdate, _: dict = Depends(get_current_admin)):
     try:
+        if req.admin_secret != ADMIN_PASS:
+            raise HTTPException(status_code=403, detail="Invalid admin secret")
         conn = get_db_connection()
         cursor = conn.cursor()
         cursor.execute(
@@ -330,26 +406,45 @@ async def update_universal_content(req: ContentUpdate):
         cursor.close()
         conn.close()
         return {"status": "success", "message": "Content updated locally!"}
-    except Exception as e:
-        raise HTTPException(status_code=500, detail=str(e))
+    except HTTPException:
+        raise
+    except Exception:
+        raise HTTPException(status_code=500, detail="Internal server error")
 
 # =============================================================
 # ACTIVITIES ENDPOINTS (Multiple File Uploads + Database Arrays)
 # =============================================================
-@app.post("/api/activities")
+ALLOWED_IMAGE_EXTENSIONS = {".jpg", ".jpeg", ".png", ".gif", ".webp"}
+ALLOWED_VIDEO_EXTENSIONS = {".mp4", ".mov", ".avi", ".mkv", ".webm"}
+ALLOWED_IMAGE_TYPES = {"image/jpeg", "image/png", "image/gif", "image/webp"}
+ALLOWED_VIDEO_TYPES = {"video/mp4", "video/quicktime", "video/x-msvideo", "video/x-matroska", "video/webm"}
+
+def validate_upload(file: UploadFile, allowed_extensions: set, allowed_types: set) -> str:
+    if not file.filename:
+        raise HTTPException(status_code=400, detail="Empty filename")
+    ext = "." + file.filename.rsplit(".", 1)[-1].lower()
+    if ext not in allowed_extensions:
+        raise HTTPException(status_code=400, detail=f"Unsupported file extension: {ext}")
+    content_type = file.content_type or ""
+    if content_type not in allowed_types:
+        raise HTTPException(status_code=400, detail=f"Unsupported content type: {content_type}")
+    return ext
+
+@app.post("/api/activities", dependencies=[Depends(rate_limiter_dep)])
 async def create_activity(
     title: str = Form(...),
     description: str = Form(...),
     images: List[UploadFile] = File(default=[]),
-    videos: List[UploadFile] = File(default=[])
+    videos: List[UploadFile] = File(default=[]),
+    _: dict = Depends(get_current_admin)
 ):
     image_urls = []
     video_urls = []
 
     for image in images:
         if image.filename:
-            ext = image.filename.split(".")[-1]
-            unique_filename = f"{uuid.uuid4()}.{ext}"
+            ext = validate_upload(image, ALLOWED_IMAGE_EXTENSIONS, ALLOWED_IMAGE_TYPES)
+            unique_filename = f"{uuid.uuid4()}{ext}"
             file_path = os.path.join(UPLOAD_DIR, unique_filename)
             with open(file_path, "wb") as buffer:
                 shutil.copyfileobj(image.file, buffer)
@@ -357,8 +452,8 @@ async def create_activity(
 
     for video in videos:
         if video.filename:
-            ext = video.filename.split(".")[-1]
-            unique_filename = f"{uuid.uuid4()}.{ext}"
+            ext = validate_upload(video, ALLOWED_VIDEO_EXTENSIONS, ALLOWED_VIDEO_TYPES)
+            unique_filename = f"{uuid.uuid4()}{ext}"
             file_path = os.path.join(UPLOAD_DIR, unique_filename)
             with open(file_path, "wb") as buffer:
                 shutil.copyfileobj(video.file, buffer)
@@ -377,8 +472,10 @@ async def create_activity(
         cursor.close()
         conn.close()
         return {"message": "Activity created successfully!", "id": activity_id}
-    except Exception as e:
-        raise HTTPException(status_code=500, detail=f"Database error: {str(e)}")
+    except HTTPException:
+        raise
+    except Exception:
+        raise HTTPException(status_code=500, detail="Internal server error")
 
 
 @app.get("/api/activities")
@@ -407,8 +504,10 @@ async def get_activities():
             for row in rows
         ]
         return {"activities": activities}
-    except Exception as e:
-        raise HTTPException(status_code=500, detail=f"Database error: {str(e)}")
+    except HTTPException:
+        raise
+    except Exception:
+        raise HTTPException(status_code=500, detail="Internal server error")
 
 
 @app.get("/api/activities/{activity_id}")
@@ -438,17 +537,18 @@ async def get_activity(activity_id: int):
         }
     except HTTPException:
         raise
-    except Exception as e:
-        raise HTTPException(status_code=500, detail=f"Database error: {str(e)}")
+    except Exception:
+        raise HTTPException(status_code=500, detail="Internal server error")
 
 
-@app.put("/api/activities/{activity_id}")
+@app.put("/api/activities/{activity_id}", dependencies=[Depends(rate_limiter_dep)])
 async def update_activity(
     activity_id: int,
     title: str = Form(...),
     description: str = Form(...),
     images: List[UploadFile] = File(default=[]),
-    videos: List[UploadFile] = File(default=[])
+    videos: List[UploadFile] = File(default=[]),
+    _: dict = Depends(get_current_admin)
 ):
     try:
         conn = get_db_connection()
@@ -474,8 +574,8 @@ async def update_activity(
             new_image_urls = []
             for image in images:
                 if image.filename:
-                    ext = image.filename.split(".")[-1]
-                    unique_filename = f"{uuid.uuid4()}.{ext}"
+                    ext = validate_upload(image, ALLOWED_IMAGE_EXTENSIONS, ALLOWED_IMAGE_TYPES)
+                    unique_filename = f"{uuid.uuid4()}{ext}"
                     file_path = os.path.join(UPLOAD_DIR, unique_filename)
                     with open(file_path, "wb") as buffer:
                         shutil.copyfileobj(image.file, buffer)
@@ -488,8 +588,8 @@ async def update_activity(
             new_video_urls = []
             for video in videos:
                 if video.filename:
-                    ext = video.filename.split(".")[-1]
-                    unique_filename = f"{uuid.uuid4()}.{ext}"
+                    ext = validate_upload(video, ALLOWED_VIDEO_EXTENSIONS, ALLOWED_VIDEO_TYPES)
+                    unique_filename = f"{uuid.uuid4()}{ext}"
                     file_path = os.path.join(UPLOAD_DIR, unique_filename)
                     with open(file_path, "wb") as buffer:
                         shutil.copyfileobj(video.file, buffer)
@@ -510,12 +610,12 @@ async def update_activity(
         return {"message": "Activity updated successfully!", "id": updated_id}
     except HTTPException:
         raise
-    except Exception as e:
-        raise HTTPException(status_code=500, detail=f"Database error: {str(e)}")
+    except Exception:
+        raise HTTPException(status_code=500, detail="Internal server error")
 
 
-@app.delete("/api/activities/{activity_id}")
-async def delete_activity(activity_id: int):
+@app.delete("/api/activities/{activity_id}", dependencies=[Depends(rate_limiter_dep)])
+async def delete_activity(activity_id: int, _: dict = Depends(get_current_admin)):
     try:
         conn = get_db_connection()
         cursor = conn.cursor()
@@ -546,18 +646,95 @@ async def delete_activity(activity_id: int):
         return {"message": "Activity deleted successfully!"}
     except HTTPException:
         raise
+    except Exception:
+        raise HTTPException(status_code=500, detail="Internal server error")
+
+
+# =============================================================
+# NEW: ACTIVITY COMMENTS & RATINGS ENDPOINTS
+# =============================================================
+@app.post("/api/activities/{activity_id}/comments")
+async def add_activity_comment(activity_id: int, req: CommentRequest):
+    try:
+        if req.rating < 1 or req.rating > 5:
+            raise HTTPException(status_code=400, detail="Rating must be between 1 and 5")
+            
+        conn = get_db_connection()
+        cursor = conn.cursor()
+        cursor.execute("""
+            INSERT INTO activity_comments (activity_id, user_name, rating, comment)
+            VALUES (%s, %s, %s, %s)
+            RETURNING id, created_at;
+        """, (activity_id, req.user_name, req.rating, req.comment))
+        
+        result = cursor.fetchone()
+        conn.commit()
+        cursor.close()
+        conn.close()
+        
+        return {
+            "status": "success",
+            "message": "Comment added successfully!",
+            "comment": {
+                "id": result[0],
+                "user_name": req.user_name,
+                "rating": req.rating,
+                "comment": req.comment,
+                "created_at": result[1].isoformat()
+            }
+        }
+    except HTTPException:
+        raise
+    except Exception:
+        raise HTTPException(status_code=500, detail="Internal server error")
+
+
+@app.get("/api/activities/{activity_id}/comments")
+async def get_activity_comments(activity_id: int):
+    try:
+        conn = get_db_connection()
+        cursor = conn.cursor()
+        cursor.execute("""
+            SELECT id, user_name, rating, comment, created_at 
+            FROM activity_comments 
+            WHERE activity_id = %s 
+            ORDER BY created_at DESC;
+        """, (activity_id,))
+        rows = cursor.fetchall()
+        cursor.close()
+        conn.close()
+        
+        comments = [
+            {
+                "id": row[0],
+                "user_name": row[1],
+                "rating": row[2],
+                "comment": row[3],
+                "created_at": row[4].isoformat() if row[4] else None
+            }
+            for row in rows
+        ]
+        return {"comments": comments}
     except Exception as e:
         raise HTTPException(status_code=500, detail=f"Database error: {str(e)}")
 
 
 # =============================================================
-# NEW: CONTACT FORM EMAIL ENDPOINT
+# CONTACT FORM EMAIL ENDPOINT
 # =============================================================
-@app.post("/api/contact")
+@app.post("/api/contact", dependencies=[Depends(rate_limiter_dep)])
 async def send_contact_email(req: ContactRequest):
     try:
-        # Configure Resend API Key
         resend.api_key = os.getenv("RESEND_API_KEY")
+        
+        safe_inquiry = html_lib.escape(req.inquiryType)
+        safe_first = html_lib.escape(req.firstName)
+        safe_last = html_lib.escape(req.lastName)
+        safe_email = html_lib.escape(req.email)
+        safe_phone = html_lib.escape(req.phone) if req.phone else ""
+        safe_company = html_lib.escape(req.companyName) if req.companyName else ""
+        safe_website = html_lib.escape(req.website) if req.website else ""
+        safe_message = html_lib.escape(req.message).replace("\n", "<br>")
         
         subject = f"[Website Inquiry] {req.inquiryType} — {req.firstName} {req.lastName}"
         
@@ -568,17 +745,17 @@ async def send_contact_email(req: ContactRequest):
             </h2>
             
             <div style="background: #f8fafc; padding: 20px; border-radius: 8px; margin: 20px 0;">
-                <p style="margin: 8px 0;"><strong>Inquiry Type:</strong> {req.inquiryType}</p>
-                <p style="margin: 8px 0;"><strong>Name:</strong> {req.firstName} {req.lastName}</p>
-                <p style="margin: 8px 0;"><strong>Email:</strong> <a href="mailto:{req.email}" style="color: #0B1E3D;">{req.email}</a></p>
-                {f'<p style="margin: 8px 0;"><strong>Phone:</strong> {req.phone}</p>' if req.phone else ''}
-                {f'<p style="margin: 8px 0;"><strong>Company:</strong> {req.companyName}</p>' if req.companyName else ''}
-                {f'<p style="margin: 8px 0;"><strong>Website:</strong> <a href="{req.website}" style="color: #0B1E3D;">{req.website}</a></p>' if req.website else ''}
+                <p style="margin: 8px 0;"><strong>Inquiry Type:</strong> {safe_inquiry}</p>
+                <p style="margin: 8px 0;"><strong>Name:</strong> {safe_first} {safe_last}</p>
+                <p style="margin: 8px 0;"><strong>Email:</strong> <a href="mailto:{safe_email}" style="color: #0B1E3D;">{safe_email}</a></p>
+                {f'<p style="margin: 8px 0;"><strong>Phone:</strong> {safe_phone}</p>' if safe_phone else ''}
+                {f'<p style="margin: 8px 0;"><strong>Company:</strong> {safe_company}</p>' if safe_company else ''}
+                {f'<p style="margin: 8px 0;"><strong>Website:</strong> <a href="{safe_website}" style="color: #0B1E3D;">{safe_website}</a></p>' if safe_website else ''}
             </div>
             
             <h3 style="color: #0B1E3D;">Message:</h3>
             <div style="background: #ffffff; padding: 20px; border-left: 4px solid #FBBF24; border-radius: 4px;">
-                <p style="line-height: 1.6; color: #334155;">{req.message.replace(chr(10), '<br>')}</p>
+                <p style="line-height: 1.6; color: #334155;">{safe_message}</p>
             </div>
             
             <div style="margin-top: 30px; padding-top: 20px; border-top: 1px solid #e2e8f0; font-size: 12px; color: #94a3b8;">
@@ -603,8 +780,9 @@ async def send_contact_email(req: ContactRequest):
             "message": "Your message has been sent successfully! We'll get back to you soon."
         }
         
-    except Exception as e:
-        print(f"Email sending error: {str(e)}")
+    except HTTPException:
+        raise
+    except Exception:
         raise HTTPException(
             status_code=500, 
             detail="Failed to send email. Please try again later or contact us directly."
@@ -614,7 +792,7 @@ async def send_contact_email(req: ContactRequest):
 # =============================================================
 # EXISTING AI CHAT & TTS ENDPOINTS
 # =============================================================
-@app.post("/chat")
+@app.post("/chat", dependencies=[Depends(rate_limiter_dep)])
 async def chat(req: ChatRequest):
     selected_project = PROJECT_REGISTRY.get(req.project_key.lower(), PROJECT_REGISTRY["akademia"])
     keyword_category = detect_escalation_category_by_keyword(req.message)
@@ -668,7 +846,7 @@ async def chat(req: ChatRequest):
 
     return {"response": raw_response, "actions": []}
 
-@app.post("/tts")
+@app.post("/tts", dependencies=[Depends(rate_limiter_dep)])
 async def text_to_speech(req: TTSRequest):
     try:
         speakable_text = clean_text_for_speech(req.text)

@@ -1,21 +1,37 @@
 import { NextResponse } from 'next/server';
 import type { NextRequest } from 'next/server';
 
-export function middleware(request: NextRequest) {
-  // Get the token from the cookies
-  const token = request.cookies.get('admin_token')?.value;
+export async function middleware(request: NextRequest) {
+  if (request.nextUrl.pathname.startsWith('/admin/login')) {
+    return NextResponse.next();
+  }
 
-  // If the user is trying to access /admin and doesn't have a token, redirect to login
-  if (request.nextUrl.pathname.startsWith('/admin') && !request.nextUrl.pathname.startsWith('/admin/login')) {
+  if (request.nextUrl.pathname.startsWith('/admin')) {
+    const token = request.cookies.get('admin_token')?.value;
     if (!token) {
       return NextResponse.redirect(new URL('/admin/login', request.url));
+    }
+
+    try {
+      const res = await fetch(`${request.nextUrl.origin}/api/auth/verify`, {
+        headers: { Authorization: `Bearer ${token}` },
+        cache: 'no-store',
+      });
+      if (!res.ok) {
+        const response = NextResponse.redirect(new URL('/admin/login', request.url));
+        response.cookies.delete('admin_token');
+        return response;
+      }
+    } catch {
+      const response = NextResponse.redirect(new URL('/admin/login', request.url));
+      response.cookies.delete('admin_token');
+      return response;
     }
   }
 
   return NextResponse.next();
 }
 
-// Configure which paths the middleware should run on
 export const config = {
   matcher: ['/admin/:path*'],
 };
